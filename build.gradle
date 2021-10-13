@@ -1,15 +1,234 @@
+import java.util.regex.Matcher
+
 plugins {
   id 'java'
   id 'io.quarkus'
+//  id 'maven'
+  id 'maven-publish'
+  id 'signing'
+  id 'org.kordamp.gradle.jandex'
+  id 'net.researchgate.release'
 }
 
 group 'com.trikorasolutions.keycloak'
-version '1.0.0-SNAPSHOT'
+//version '1.0.0-SNAPSHOT'
+
+defaultTasks 'quarkusBuild', 'check'
 
 repositories {
   mavenCentral()
   mavenLocal()
 }
+
+configure(rootProject) {
+  file("$rootDir/version.properties").withReader {
+    Properties props = new Properties()
+    props.load(it)
+    project.ext.propVer = props
+  }
+  version = ext.propVer.get('version')
+  println "version: ${version}"
+}
+
+// ###########
+// # Release #
+// ###########
+
+release {
+  failOnCommitNeeded = true
+  failOnPublishNeeded = true
+  failOnSnapshotDependencies = true
+  failOnUnversionedFiles = true
+  failOnUpdateNeeded = true
+  revertOnFail = true
+  preCommitText = ''
+  preTagCommitMessage = '[Gradle Release Plugin] - pre tag commit: '
+  tagCommitMessage = '[Gradle Release Plugin] - creating tag: '
+  newVersionCommitMessage = '[Gradle Release Plugin] - new version commit: '
+  tagTemplate = '${version}'
+  versionPropertyFile = 'version.properties'
+  versionProperties = ['version']
+  snapshotSuffix = '-SNAPSHOT'
+  buildTasks = ['quarkusBuild']
+  ignoredSnapshotDependencies = []
+  versionPatterns = [
+    /(\d+)([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}${m[0][2]}") }
+  ]
+  pushReleaseVersionBranch = false
+  scmAdapters = [
+    net.researchgate.release.GitAdapter
+  ]
+
+  git {
+    requireBranch = 'release-sonatype'
+    pushToRemote = 'origin'
+    pushToBranchPrefix = ''
+    commitVersionFileOnly = false
+    signTag = false
+  }
+}
+
+afterReleaseBuild.dependsOn uploadArchives
+
+// ###########
+// # Publish #
+// ###########
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      artifactId "${project.name}"
+      groupId "${group}"
+      version "${version}"
+//      artifactId = 'my-library'
+
+//      from components.java
+//      versionMapping {
+//        usage('java-api') {
+//          fromResolutionOf('runtimeClasspath')
+//        }
+//        usage('java-runtime') {
+//          fromResolutionResult()
+//        }
+//      }
+
+      from components.java
+      pom {
+//        name = 'Keycloak Quarkus Reactive REST Client'
+//        description = 'Reactive Keycloak REST client to be used on Quarkus.'
+//        url = 'https://github.com/trikorasolns/keycloak-quarkus-client/'
+//        properties = [
+//          myProp          : "value",
+//          "prop.with.dots": "anotherValue"
+//        ]
+        licenses {
+          license {
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+        organization {
+          name = 'Trikora Solutions'
+          url = 'https://github.com/trikorasolns'
+        }
+        developers {
+          developer {
+            id = 'jacobdotcosta'
+            name = 'Antonio Costa'
+          }
+//          developer {
+//            id 'SirSkizo'
+//            name 'Angel Casanova'
+//          }
+        }
+        issueManagement {
+          system = 'Github'
+          url = 'https://github.com/trikorasolns/keycloak-quarkus-client/issues'
+        }
+        scm {
+          connection = 'scm:git:https://github.com/trikorasolns/keycloak-quarkus-client/.git'
+          developerConnection = 'scm:git:git@github.com:trikorasolns/keycloak-quarkus-client/.git'
+          url = 'https://github.com/trikorasolns/keycloak-quarkus-client/'
+        }
+      }
+    }
+  }
+  repositories {
+    maven {
+      // change URLs to point to your repos, e.g. http://my.org/repo
+//      def releasesRepoUrl = layout.buildDirectory.dir('repos/releases')
+//      def snapshotsRepoUrl = layout.buildDirectory.dir('repos/snapshots')
+      def releasesRepoUrl = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+      def snapshotsRepoUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+      url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+      authentication {
+        basic(BasicAuthentication)
+        digest(DigestAuthentication)
+      }
+      credentials(PasswordCredentials)
+    }
+  }
+}
+
+signing {
+  sign publishing.publications.mavenJava
+}
+
+javadoc {
+  if (JavaVersion.current().isJava9Compatible()) {
+    options.addBooleanOption('html5', true)
+  }
+}
+
+//task javadocJar(type: Jar) {
+//  classifier = 'javadoc'
+//  from javadoc
+//}
+//
+//task sourcesJar(type: Jar) {
+//  classifier = 'sources'
+//  from sourceSets.main.allSource
+//}
+//
+//artifacts {
+//  archives javadocJar, sourcesJar
+//}
+//
+//signing {
+//  sign configurations.archives
+//}
+//
+//uploadArchives {
+//  repositories {
+//    mavenDeployer {
+//      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+//
+//      repository(url: "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/") {
+//        authentication(userName: ossrhUsername, password: ossrhPassword)
+//      }
+//
+//      snapshotRepository(url: "https://s01.oss.sonatype.org/content/repositories/snapshots/") {
+//        authentication(userName: ossrhUsername, password: ossrhPassword)
+//      }
+//
+//      pom.project {
+//        name 'Keycloak Reactive Quarkus REST Client'
+//        packaging 'jar'
+//        // optionally artifactId can be defined here
+//        description 'Reactive Quarkus REST Client to interact with Keycloak.'
+//        url 'http://www.example.com/example-application'
+//
+//        scm {
+//          connection 'scm:svn:http://foo.googlecode.com/svn/trunk/'
+//          developerConnection 'scm:svn:https://foo.googlecode.com/svn/trunk/'
+//          url 'http://foo.googlecode.com/svn/trunk/'
+//        }
+//
+//        licenses {
+//          license {
+//            name 'The Apache License, Version 2.0'
+//            url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+//          }
+//        }
+//
+//        developers {
+//          developer {
+//            id 'jacobdotcosta'
+//            name 'Antonio Costa'
+//          }
+//          developer {
+//            id 'SirSkizo'
+//            name 'Angel Casanova'
+//          }
+//        }
+//      }
+//    }
+//  }
+//}
+
+// ###########
+// # PROJECT #
+// ###########
 
 dependencies {
   implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
@@ -36,6 +255,8 @@ dependencies {
 java {
   sourceCompatibility = JavaVersion.VERSION_11
   targetCompatibility = JavaVersion.VERSION_11
+  withJavadocJar()
+  withSourcesJar()
 }
 
 compileJava {
