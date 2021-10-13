@@ -60,7 +60,7 @@ release {
   ]
 
   git {
-    requireBranch = 'release-sonatype'
+    requireBranch = 'main'
     pushToRemote = 'origin'
     pushToBranchPrefix = ''
     commitVersionFileOnly = false
