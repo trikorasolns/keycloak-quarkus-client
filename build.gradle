@@ -1,0 +1,48 @@
+plugins {
+  id 'java'
+  id 'io.quarkus'
+}
+
+group 'com.trikorasolutions.keycloak'
+version '1.0.0-SNAPSHOT'
+
+repositories {
+  mavenCentral()
+  mavenLocal()
+}
+
+dependencies {
+  implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
+  implementation 'io.quarkus:quarkus-arc'
+  // KeyClock
+  implementation 'io.quarkus:quarkus-keycloak-authorization'
+  implementation 'io.rest-assured:rest-assured'
+
+  // Rest
+  implementation 'io.quarkus:quarkus-resteasy-reactive'
+  implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
+  implementation 'io.quarkus:quarkus-rest-client-reactive'
+  implementation 'io.quarkus:quarkus-rest-client-reactive-jackson'
+//  implementation 'io.quarkus:quarkus-rest-client-jsonb'
+  // Console
+  implementation 'io.quarkus:quarkus-smallrye-health'
+  implementation 'io.quarkus:quarkus-smallrye-openapi'
+  // Test
+  testImplementation 'io.quarkus:quarkus-junit5'
+  testImplementation 'io.rest-assured:rest-assured'
+//  testImplementation 'io.quarkus:quarkus-keycloak-authorization'
+}
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_11
+  targetCompatibility = JavaVersion.VERSION_11
+}
+
+compileJava {
+  options.encoding = 'UTF-8'
+  options.compilerArgs << '-parameters'
+}
+
+compileTestJava {
+  options.encoding = 'UTF-8'
+}
