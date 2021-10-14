@@ -26,7 +26,7 @@ public interface KeycloakAuthAdminResource {
    * Register a new user in the Keycloak client.
    *
    * @param body raw string containing the new user in the UserRepresentation format.
-   * @return A JsonArray with the UserRepresentation of the created user.
+   * @return -
    */
   @POST
   @Path("/realms/{realm}/users")

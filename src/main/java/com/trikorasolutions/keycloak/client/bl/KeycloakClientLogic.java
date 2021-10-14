@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.json.JsonArray;
+import java.util.NoSuchElementException;
 
 /**
  * Common arguments to all the methods:
@@ -30,21 +31,28 @@ public class KeycloakClientLogic {
    * Creates a new user in the Keycloak database.
    *
    * @param newUser a UserRepresentation of the user that is going to be created.
-   * @return A JsonArray with the UserRepresentation of the created user.
+   * @return a UserRepresentation of the created user.
    */
   public Uni<JsonArray> createUser(final String realm, final String token, final String keycloakClientId, final UserRepresentation newUser) {
-    return keycloakClient.createUser("Bearer " + token, realm, "implicit", keycloakClientId, newUser);
+    return keycloakClient.createUser("Bearer " + token, realm, "implicit", keycloakClientId, newUser)
+      .onFailure().transform((x) -> new IllegalArgumentException())
+      .replaceWith(keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, newUser.username));
   }
 
   /**
    * Updated a user in Keycloak.
    *
-   * @param userId  Id of the user that is going to be updated.
-   * @param newUser Raw string containing the new user data in the UserRepresentation format.
-   * @return A UserRepresentation of the updated user.
+   * @param userName  username of the user that is going to be updated.
+   * @param newUser raw string containing the new user data in the UserRepresentation format.
+   * @return a UserRepresentation of the updated user.
    */
-  public Uni<JsonArray> updateUser(final String realm, final String token, final String keycloakClientId, final String userId, final UserRepresentation newUser) {
-    return keycloakClient.updateUser("Bearer " + token, realm, "implicit", keycloakClientId, userId, newUser);
+  public Uni<JsonArray> updateUser(final String realm, final String token, final String keycloakClientId, final String userName, final UserRepresentation newUser) {
+    return keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName)
+      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
+      .onItem().ifNull().failWith(() ->new NoSuchElementException()).onItem().ifNotNull()
+      .transform(userInfo -> userInfo.getString("id"))
+      .call(userId-> keycloakClient.updateUser("Bearer " + token, realm, "implicit", keycloakClientId, userId, newUser))
+      .replaceWith(keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName));
   }
 
   /**
@@ -60,11 +68,16 @@ public class KeycloakClientLogic {
   /**
    * Deletes a user from the Keycloak database.
    *
-   * @param id id of the user that is going to be deleted from the keycloak database.
-   * @return an empty JsonArray.
+   * @param userName name of the user that is going to be deleted from the keycloak database.
+   * @return a UserRepresentation of the deleted user.
    */
-  public Uni<JsonArray> deleteUser(final String realm, final String token, final String keycloakClientId, final String id) {
-    return keycloakClient.deleteUser("Bearer " + token, realm, "implicit", keycloakClientId, id);
+  public Uni<JsonArray> deleteUser(final String realm, final String token, final String keycloakClientId, final String userName) {
+    return keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName)
+      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
+      .onItem().ifNull().failWith(() ->new NoSuchElementException()).onItem().ifNotNull()
+      .transform(userInfo -> userInfo.getString("id"))
+      .call(userId-> keycloakClient.deleteUser("Bearer " + token, realm, "implicit", keycloakClientId, userId))
+      .replaceWith(keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName));
   }
 
   /**
@@ -89,11 +102,15 @@ public class KeycloakClientLogic {
   /**
    * Gets all the users that belongs to a concrete group.
    *
-   * @param groupId id of the group that is going to be queried.
+   * @param groupName name of the group that is going to be queried.
    * @return a JsonArray of UserRepresentation.
    */
-  public Uni<JsonArray> getUsersForGroup(final String realm, final String token, final String keycloakClientId, final String groupId) {
-    return keycloakClient.getGroupUsers("Bearer " + token, realm, "implicit", keycloakClientId, groupId);
+  public Uni<JsonArray> getUsersForGroup(final String realm, final String token, final String keycloakClientId, final String groupName) {
+    return keycloakClient.getGroupInfo("Bearer " + token, realm, "implicit", keycloakClientId, groupName)
+      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
+      .onItem().ifNull().failWith(() ->new NoSuchElementException()).onItem().ifNotNull()
+      .transform(userInfo -> userInfo.getString("id"))
+      .onItem().transformToUni(userId-> keycloakClient.getGroupUsers("Bearer " + token, realm, "implicit", keycloakClientId, userId));
   }
 
   /**
