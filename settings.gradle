@@ -5,7 +5,9 @@ pluginManagement {
         gradlePluginPortal()
     }
     plugins {
-        id "${quarkusPluginId}" version "${quarkusPluginVersion}"
+      id "${quarkusPluginId}" version "${quarkusPluginVersion}"
+      id 'net.researchgate.release' version "${netResearchgateReleaseVersion}"
+      id 'org.kordamp.gradle.jandex' version "${kordampGradleJandexVersion}"
     }
 }
 rootProject.name='keycloak-quarkus-client'

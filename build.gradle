@@ -1,15 +1,151 @@
+import java.util.regex.Matcher
+
 plugins {
   id 'java'
   id 'io.quarkus'
+//  id 'maven'
+  id 'maven-publish'
+  id 'signing'
+  id 'org.kordamp.gradle.jandex'
+  id 'net.researchgate.release'
 }
 
 group 'com.trikorasolutions.keycloak'
-version '1.0.0-SNAPSHOT'
+//version '1.0.0-SNAPSHOT'
+
+defaultTasks 'quarkusBuild', 'check'
 
 repositories {
   mavenCentral()
   mavenLocal()
 }
+
+configure(rootProject) {
+  file("$rootDir/version.properties").withReader {
+    Properties props = new Properties()
+    props.load(it)
+    project.ext.propVer = props
+  }
+  version = ext.propVer.get('version')
+  println "version: ${version}"
+}
+
+// ###########
+// # Release #
+// ###########
+
+release {
+  failOnCommitNeeded = true
+  failOnPublishNeeded = true
+  failOnSnapshotDependencies = true
+  failOnUnversionedFiles = true
+  failOnUpdateNeeded = true
+  revertOnFail = true
+  preCommitText = ''
+  preTagCommitMessage = '[Gradle Release Plugin] - pre tag commit: '
+  tagCommitMessage = '[Gradle Release Plugin] - creating tag: '
+  newVersionCommitMessage = '[Gradle Release Plugin] - new version commit: '
+  tagTemplate = '${version}'
+  versionPropertyFile = 'version.properties'
+  versionProperties = ['version']
+  snapshotSuffix = '-SNAPSHOT'
+  buildTasks = ['quarkusBuild']
+  ignoredSnapshotDependencies = []
+  versionPatterns = [
+    /(\d+)([^\d]*$)/: { Matcher m, Project p -> m.replaceAll("${(m[0][1] as int) + 1}${m[0][2]}") }
+  ]
+  pushReleaseVersionBranch = false
+  scmAdapters = [
+    net.researchgate.release.GitAdapter
+  ]
+
+  git {
+    requireBranch = 'main'
+    pushToRemote = 'origin'
+    pushToBranchPrefix = ''
+    commitVersionFileOnly = false
+    signTag = false
+  }
+}
+
+// ###########
+// # Publish #
+// ###########
+
+//afterReleaseBuild.dependsOn uploadArchives
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      artifactId "${project.name}"
+      groupId "${group}"
+      version "${version}"
+
+      from components.java
+      pom {
+        name = 'Keycloak Quarkus Reactive REST Client'
+        description = 'Reactive Keycloak REST client to be used on Quarkus.'
+        url = 'https://github.com/trikorasolns/keycloak-quarkus-client/'
+        licenses {
+          license {
+            name = 'The Apache License, Version 2.0'
+            url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          }
+        }
+        organization {
+          name = 'Trikora Solutions'
+          url = 'https://github.com/trikorasolns'
+        }
+        developers {
+          developer {
+            id = 'jacobdotcosta'
+            name = 'Antonio Costa'
+          }
+//          developer {
+//            id 'SirSkizo'
+//            name 'Angel Casanova'
+//          }
+        }
+        issueManagement {
+          system = 'Github'
+          url = 'https://github.com/trikorasolns/keycloak-quarkus-client/issues'
+        }
+        scm {
+          connection = 'scm:git:https://github.com/trikorasolns/keycloak-quarkus-client/.git'
+          developerConnection = 'scm:git:git@github.com:trikorasolns/keycloak-quarkus-client/.git'
+          url = 'https://github.com/trikorasolns/keycloak-quarkus-client/'
+        }
+      }
+    }
+  }
+  repositories {
+    maven {
+      def releasesRepoUrl = 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+      def snapshotsRepoUrl = 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+      url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+      authentication {
+        basic(BasicAuthentication)
+        digest(DigestAuthentication)
+      }
+      credentials(PasswordCredentials)
+    }
+  }
+}
+
+signing {
+  sign publishing.publications.mavenJava
+}
+
+javadoc {
+  if (JavaVersion.current().isJava9Compatible()) {
+    options.addBooleanOption('html5', true)
+  }
+}
+
+
+// ###########
+// # PROJECT #
+// ###########
 
 dependencies {
   implementation enforcedPlatform("${quarkusPlatformGroupId}:${quarkusPlatformArtifactId}:${quarkusPlatformVersion}")
@@ -17,25 +153,25 @@ dependencies {
   // KeyClock
   implementation 'io.quarkus:quarkus-keycloak-authorization'
   implementation 'io.rest-assured:rest-assured'
-
   // Rest
   implementation 'io.quarkus:quarkus-resteasy-reactive'
   implementation 'io.quarkus:quarkus-resteasy-reactive-jackson'
   implementation 'io.quarkus:quarkus-rest-client-reactive'
   implementation 'io.quarkus:quarkus-rest-client-reactive-jackson'
-//  implementation 'io.quarkus:quarkus-rest-client-jsonb'
+
   // Console
   implementation 'io.quarkus:quarkus-smallrye-health'
   implementation 'io.quarkus:quarkus-smallrye-openapi'
   // Test
   testImplementation 'io.quarkus:quarkus-junit5'
   testImplementation 'io.rest-assured:rest-assured'
-//  testImplementation 'io.quarkus:quarkus-keycloak-authorization'
 }
 
 java {
   sourceCompatibility = JavaVersion.VERSION_11
   targetCompatibility = JavaVersion.VERSION_11
+  withJavadocJar()
+  withSourcesJar()
 }
 
 compileJava {
