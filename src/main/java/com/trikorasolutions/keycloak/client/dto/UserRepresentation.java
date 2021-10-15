@@ -52,14 +52,4 @@ public class UserRepresentation {
     this.username = username;
     this.credentials = Set.of(this.new UserDtoCredential(username));
   }
-
-  public UserRepresentation(UserRepresentation newUser) {
-    this.firstName = newUser.firstName;
-    this.lastName = newUser.lastName;
-    this.email = newUser.email;
-    this.enabled = newUser.enabled;
-    this.username = newUser.username;
-    this.credentials = Set.of(this.new UserDtoCredential(newUser.username));
-  }
-
 }

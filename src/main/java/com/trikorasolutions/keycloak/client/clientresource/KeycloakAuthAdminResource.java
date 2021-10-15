@@ -10,11 +10,12 @@ import javax.ws.rs.core.MediaType;
 
 /**
  * Common arguments to all the methods:
- *
- * @param bearerToken access token provided by the  keycloak SecurityIdentity.
- * @param realm the realm name in which the users are going to be queried.
- * @param grantType kind of authentication method.
- * @param clientId id of the client (service name).
+ * <ul>
+ * <li> bearerToken access token provided by the  keycloak SecurityIdentity.
+ * <li> realm the realm name in which the users are going to be queried.
+ * <li> grantType kind of authentication method.
+ * <li> clientId id of the client (service name).
+ * </ul>
  */
 @Path("/auth/admin")
 @RegisterRestClient(configKey = "keycloak-api")

@@ -4,8 +4,6 @@ import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.json.JsonArray;
@@ -20,7 +18,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 @QuarkusTest
 public class LogicCRUDTest {
-  private static final Logger LOGGER = LoggerFactory.getLogger(LogicCRUDTest.class);
 
   @Inject
   KeycloakClientLogic keycloakClientLogic;
