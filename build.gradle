@@ -10,8 +10,8 @@ plugins {
   id 'net.researchgate.release'
 }
 
-group 'com.trikorasolutions.keycloak'
-//version '1.0.0-SNAPSHOT'
+group 'io.github.trikorasolns'
+//group 'com.trikorasolutions.keycloak'
 
 defaultTasks 'quarkusBuild', 'check'
 
