@@ -8,8 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.ws.rs.core.MediaType;
 
 /**
  * These variables regarding the "backend-service" client belongs to a testing example project,
@@ -41,15 +39,10 @@ public class TrikoraKeycloakClientInfo {
   public String getClientSecret() {
     return clientSecret;
   }
-
-  public String getClientId() {
-    return clientId;
-  }
-
+  public String getClientId() {return clientId;}
   public String getClientServerUrl() {
     return clientServerUrl;
   }
-
   public String getRealmName() {
     return realmName;
   }
