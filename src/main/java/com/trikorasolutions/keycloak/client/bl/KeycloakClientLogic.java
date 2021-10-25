@@ -63,6 +63,7 @@ public class KeycloakClientLogic {
    * @return a UserRepresentation of the user.
    */
   public Uni<JsonArray> getUserInfo(final String realm, final String token, final String keycloakClientId, final String userName) {
+   // return keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName);
     return keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName);
   }
 
