@@ -46,7 +46,6 @@ public class UserRepresentation {
   public Set<UserDtoCredential> credentials;
 
   public UserRepresentation(String firstName, String lastName, String email, Boolean enabled, String username) {
-
     this.firstName = firstName;
     this.lastName = lastName;
     this.email = email;
@@ -54,5 +53,4 @@ public class UserRepresentation {
     this.username = username;
     this.credentials = Set.of(this.new UserDtoCredential(username));
   }
-
 }
