@@ -7,6 +7,7 @@ import com.trikorasolutions.keycloak.client.exception.*;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
+import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,6 +16,8 @@ import javax.json.JsonObject;
 import javax.json.JsonValue;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import static javax.ws.rs.core.Response.Status.*;
 
 /**
  * Common arguments to all the methods:
@@ -42,12 +45,12 @@ public class KeycloakClientLogic {
    */
   public Uni<KeycloakUserRepresentation> createUser(final String realm, final String token, final String keycloakClientId, final UserRepresentation newUser) {
     return keycloakClient.createUser("Bearer " + token, realm, "implicit", keycloakClientId, newUser)
-      .onFailure(org.jboss.resteasy.reactive.ClientWebApplicationException.class).transform(ex->{
-        if(ex.getMessage().contains("409")) {
+      .onFailure(ClientWebApplicationException.class).transform(ex->{
+        if(ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))){
           return new DuplicatedUserException(newUser.username);
-        }else if(ex.getMessage().contains("401")){
+        }else if(ex.getMessage().contains(String.valueOf(UNAUTHORIZED.getStatusCode()))){
           return new InvalidTokenException();
-        }else if(ex.getMessage().contains("404")){
+        }else if(ex.getMessage().contains(String.valueOf(NOT_FOUND.getStatusCode()))){
           return new ClientNotFoundException(keycloakClientId, realm);
         }else{
           return new ArgumentsFormatException("The user representation provided to Keycloak is incorrect");
