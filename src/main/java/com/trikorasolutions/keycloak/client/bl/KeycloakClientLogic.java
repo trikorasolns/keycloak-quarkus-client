@@ -3,22 +3,17 @@ package com.trikorasolutions.keycloak.client.bl;
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthAdminResource;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
-import com.trikorasolutions.keycloak.client.exception.ArgumentsFormatException;
-import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
-import com.trikorasolutions.keycloak.client.exception.NoSuchUserException;
+import com.trikorasolutions.keycloak.client.exception.*;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.tuples.Tuple2;
-import io.smallrye.mutiny.unchecked.Unchecked;
-import static io.smallrye.mutiny.unchecked.Unchecked.*;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.json.JsonArray;
+import javax.json.JsonObject;
 import javax.json.JsonValue;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 /**
@@ -39,63 +34,67 @@ public class KeycloakClientLogic {
 
   /**
    * Creates a new user in the Keycloak database.
+   * It can throw DuplicatedUserException, InvalidTokenException, ClientNotFoundException
+   * or ArgumentsFormatException exceptions.
    *
    * @param newUser a UserRepresentation of the user that is going to be created.
    * @return a UserRepresentation of the created user.
    */
-  public Uni<KeycloakUserRepresentation> createUser(final String realm, final String token, final String keycloakClientId, final UserRepresentation newUser)
-    throws ArgumentsFormatException, NoSuchUserException {
+  public Uni<KeycloakUserRepresentation> createUser(final String realm, final String token, final String keycloakClientId, final UserRepresentation newUser) {
     return keycloakClient.createUser("Bearer " + token, realm, "implicit", keycloakClientId, newUser)
-      //.onFailure().transform(Unchecked.function(x ->{ throw new ArgumentsFormatException();}))
-      .onFailure().transform(x->new ArgumentsFormatException())
-      //.onFailure().invoke(Unchecked.consumer(x ->{throw new ArgumentsFormatException();}))
-      //.onFailure(org.jboss.resteasy.reactive.ClientWebApplicationException.class).transform(throwable ->  new ArgumentsFormatException())
-      //.onFailure(org.jboss.resteasy.reactive.ClientWebApplicationException.class).transform(x->null).onItem().ifNull().failWith(()-> new ArgumentsFormatException())
-      //.onFailure().transform((x)-> new ArgumentsFormatException())
-      .replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
+      .onFailure(org.jboss.resteasy.reactive.ClientWebApplicationException.class).transform(ex->{
+        if(ex.getMessage().contains("409")) {
+          return new DuplicatedUserException(newUser.username);
+        }else if(ex.getMessage().contains("401")){
+          return new InvalidTokenException();
+        }else if(ex.getMessage().contains("404")){
+          return new ClientNotFoundException(keycloakClientId, realm);
+        }else{
+          return new ArgumentsFormatException("The user representation provided to Keycloak is incorrect");
+        }
+      }).replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
   }
 
   /**
    * Updated a user in Keycloak.
+   * It can throw NoSuchUserException.
    *
    * @param userName  username of the user that is going to be updated.
    * @param newUser raw string containing the new user data in the UserRepresentation format.
    * @return a UserRepresentation of the updated user.
    */
-  public Uni<KeycloakUserRepresentation> updateUser(final String realm, final String token, final String keycloakClientId, final String userName, final UserRepresentation newUser) throws NoSuchUserException {
-    return keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName)
-      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
-      .onItem().ifNull().failWith(() ->new NoSuchUserException()).onItem().ifNotNull()
-      .transform(userInfo -> userInfo.getString("id"))
+  public Uni<KeycloakUserRepresentation> updateUser(final String realm, final String token, final String keycloakClientId, final String userName, final UserRepresentation newUser){
+    return this.getUserInfo(realm, token, keycloakClientId, userName)
+      .onItem().transform(userInfo -> userInfo.id)
       .call(userId-> keycloakClient.updateUser("Bearer " + token, realm, "implicit", keycloakClientId, userId, newUser))
       .replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
   }
 
   /**
    * Return the UserRepresentation of one user queried by his username.
+   * It can throw NoSuchUserException.
    *
    * @param userName username of the user witch is going to be searched.
    * @return a UserRepresentation of the user.
    */
   public Uni<KeycloakUserRepresentation> getUserInfo(final String realm, final String token, final String keycloakClientId, final String userName){
     return keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName)
-      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
-      .onItem().ifNull().failWith(() ->new NoSuchUserException())
+      .onItem().transform(jsonArray-> (jsonArray.isEmpty() || jsonArray.size() > 1 )? null : jsonArray.get(0).asJsonObject())
+      .onItem().ifNull().failWith(() ->new NoSuchUserException(userName))
       .onItem().ifNotNull().transform(KeycloakUserRepresentation::from);
   }
 
   /**
    * Deletes a user from the Keycloak database.
+   * It can throw NoSuchUserException.
    *
    * @param userName name of the user that is going to be deleted from the keycloak database.
    * @return a UserRepresentation of the deleted user.
    */
-  public Uni<KeycloakUserRepresentation> deleteUser(final String realm, final String token, final String keycloakClientId, final String userName) {
+  public Uni<Boolean> deleteUser(final String realm, final String token, final String keycloakClientId, final String userName) {
     return this.getUserInfo(realm, token, keycloakClientId, userName)
-      .onItem().transform(userInfo -> userInfo.id)
-      .call(userId-> keycloakClient.deleteUser("Bearer " + token, realm, "implicit", keycloakClientId, userId))
-      .replaceWith(keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName).onItem()
-        .transform(KeycloakUserRepresentation::from));
+      .call(user-> keycloakClient.deleteUser("Bearer " + token, realm, "implicit", keycloakClientId, user.id))
+      .onItem().transform(x -> Boolean.TRUE);
   }
 
   /**
@@ -113,25 +112,27 @@ public class KeycloakClientLogic {
 
   /**
    * Return information of one group.
+   * It can throw NoSuchGroupException.
    *
    * @param groupName name of the group that is going to be queried in the Keycloak database.
    * @return a GroupRepresentation of the desired group.
    */
-  public Uni<JsonArray> getGroupInfo(final String realm, final String token, final String keycloakClientId, final String groupName) {
-    return keycloakClient.getGroupInfo("Bearer " + token, realm, "implicit", keycloakClientId, groupName);
+  public Uni<JsonObject> getGroupInfo(final String realm, final String token, final String keycloakClientId, final String groupName) {
+    return keycloakClient.getGroupInfo("Bearer " + token, realm, "implicit", keycloakClientId, groupName)
+      .onItem().transform(jsonArray-> (jsonArray.isEmpty() || jsonArray.size() > 1 )? null : jsonArray.get(0).asJsonObject())
+      .onItem().ifNull().failWith(() ->new NoSuchGroupException(groupName));
   }
 
   /**
    * Gets all the users that belongs to a concrete group.
+   * It can throw NoSuchGroupException.
    *
    * @param groupName name of the group that is going to be queried.
    * @return a JsonArray of UserRepresentation.
    */
   public Uni<List<KeycloakUserRepresentation>> getUsersForGroup(final String realm, final String token, final String keycloakClientId, final String groupName) {
-    return keycloakClient.getGroupInfo("Bearer " + token, realm, "implicit", keycloakClientId, groupName)
-      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
-      .onItem().ifNull().failWith(() ->new NoSuchGroupException()).onItem().ifNotNull()
-      .transform(userInfo -> userInfo.getString("id"))
+    return this.getGroupInfo(realm, token, keycloakClientId, groupName)
+      .onItem().transform(userInfo -> userInfo.getString("id"))
       .onItem().transformToUni(userId-> keycloakClient.getGroupUsers("Bearer " + token, realm, "implicit", keycloakClientId, userId))
       .onItem().transform(userList -> userList.stream()
         .map(JsonValue::asJsonObject)
@@ -141,21 +142,18 @@ public class KeycloakClientLogic {
 
   /**
    * Add a user to a group.
+   * It can throw NoSuchGroupException or NoSuchUserException exceptions.
    *
    * @param userName  name of the user that is going to be added.
    * @param groupName name of the group where the user will belong to.
    * @return a UserRepresentation of the user that has been added to the group.
    */
-  public Uni<KeycloakUserRepresentation> putUserInGroup(final String realm, final String token, final String keycloakClientId, final String userName, final String groupName) throws NoSuchUserException {
-    Uni<String> userId = keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName)
-      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
-      .onItem().ifNull().failWith(() ->new NoSuchUserException()).onItem().ifNotNull()
-      .transform(userInfo -> userInfo.getString("id"));
+  public Uni<KeycloakUserRepresentation> putUserInGroup(final String realm, final String token, final String keycloakClientId, final String userName, final String groupName)  {
+    Uni<String> userId = this.getUserInfo(realm, token, keycloakClientId, userName)
+      .onItem().transform(userInfo -> userInfo.id);
 
-    Uni<String> groupId = keycloakClient.getGroupInfo("Bearer " + token, realm, "implicit", keycloakClientId, groupName)
-      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
-      .onItem().ifNull().failWith(() ->new NoSuchGroupException()).onItem().ifNotNull()
-      .transform(userInfo -> userInfo.getString("id"));
+    Uni<String> groupId = this.getGroupInfo(realm, token, keycloakClientId, groupName)
+      .onItem().transform(userInfo -> userInfo.getString("id"));
 
     Uni<Tuple2<String, String>> combinedUniTuple = Uni.combine().all().unis(userId, groupId).asTuple();
 
@@ -167,22 +165,18 @@ public class KeycloakClientLogic {
 
   /**
    * Removes a user from a group.
+   * It can throw NoSuchGroupException or NoSuchUserException exceptions.
    *
    * @param userName  name of the user that is going to be removed.
    * @param groupName name of the group.
    * @return a UserRepresentation of the user that has been kicked from the group.
    */
-  public Uni<KeycloakUserRepresentation> deleteUserFromGroup(final String realm, final String token, final String keycloakClientId, final String userName, final String groupName)
-    throws NoSuchUserException{
-    Uni<String> userId = keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId, userName)
-      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
-      .onItem().ifNull().failWith(() ->new NoSuchUserException()).onItem().ifNotNull()
-      .transform(userInfo -> userInfo.getString("id"));
+  public Uni<KeycloakUserRepresentation> deleteUserFromGroup(final String realm, final String token, final String keycloakClientId, final String userName, final String groupName) {
+    Uni<String> userId = this.getUserInfo(realm, token, keycloakClientId, userName)
+      .onItem().transform(userInfo -> userInfo.id);
 
-    Uni<String> groupId = keycloakClient.getGroupInfo("Bearer " + token, realm, "implicit", keycloakClientId, groupName)
-      .onItem().transform(jsonArray-> jsonArray.isEmpty() ? null : jsonArray.get(0).asJsonObject())
-      .onItem().ifNull().failWith(() ->new NoSuchGroupException()).onItem().ifNotNull()
-      .transform(userInfo -> userInfo.getString("id"));
+    Uni<String> groupId = this.getGroupInfo(realm, token, keycloakClientId, groupName)
+      .onItem().transform(userInfo -> userInfo.getString("id"));
 
     Uni<Tuple2<String, String>> combinedUniTuple = Uni.combine().all().unis(userId, groupId).asTuple();
 

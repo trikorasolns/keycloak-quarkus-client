@@ -85,8 +85,8 @@ public class KeycloakUserRepresentation {
     if (from.containsKey("given_name")) {
       return new KeycloakUserRepresentation(from.getString("id"), from.getString("given_name"),
         from.getString("family_name"), from.getString("email"), true, from.getString("preferred_username"));
-    } else if (!from.containsKey("lastName")) { // Admin user do not have family name
-      return new KeycloakUserRepresentation(from.getString("id"), from.getString("firstName"), "IS_CONFIDENTIAL",
+    } else if (!from.containsKey("lastName")) { // Admin user do not have a real name in this version
+      return new KeycloakUserRepresentation(from.getString("id"), "IS_CONFIDENTIAL", "IS_CONFIDENTIAL",
         from.getString("email"), false, from.getString("username"));
     } else {
       return new KeycloakUserRepresentation(from.getString("id"), from.getString("firstName"),
