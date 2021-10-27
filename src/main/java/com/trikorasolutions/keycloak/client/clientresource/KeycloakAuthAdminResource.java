@@ -54,6 +54,10 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return the UserRepresentation of one user queried by his username.
    *
+   *
+   * <b>NOTE: </b> if the username == null, then Keycloak return a JsonArray with all
+   * the users in the realm.
+   *
    * @param username username of the user witch is going to be searched.
    * @return a UserRepresentation of the user.
    */

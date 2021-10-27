@@ -1,20 +1,19 @@
 package com.trikorasolutions.keycloak.client;
 
 import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
+import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
+import com.trikorasolutions.keycloak.client.exception.*;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
-
 import javax.inject.Inject;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
+
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 public class LogicCRUDTest {
@@ -30,45 +29,102 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken("admin");
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle", "mrrectangule@trikorasolutions.com", true,
       "mrrectangule");
-    JsonArray logicResponse;
+    KeycloakUserRepresentation logicResponse;
 
-    logicResponse = keycloakClientLogic.getUserInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      newUser.username).await().indefinitely(); // Ensure that the user does not exits
-    assertThat(logicResponse, emptyIterable());
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await().indefinitely(); // Delete the test user
 
     logicResponse = keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       newUser).await().indefinitely(); // Create new user
+    assertThat(logicResponse.email, is("mrrectangule@trikorasolutions.com"));
 
-    List<String> userRepresentation = logicResponse.stream().map(JsonObject.class::cast)
-      .filter(tuple -> tuple.getString("username").equals(newUser.username)).map(tuple -> tuple.getString("email"))
-      .collect(Collectors.toList());
-    assertThat(userRepresentation.size(), is(1));
-    assertThat(userRepresentation.get(0), is("mrrectangule@trikorasolutions.com"));
-
-    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      newUser.username).await().indefinitely(); // Delete the test user
   }
 
   @Test
-  public void testCreateUserErr() {
+  public void testCreateUserDuplicatedErr() {
     String accessToken = tkrKcCli.getAccessToken("admin");
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle", "mrrectangule@trikorasolutions.com", true,
       "mrrectangule");
-    JsonArray logicResponse;
+
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await().indefinitely(); // Delete the test user
 
     keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       newUser).await().indefinitely(); // Create new user
 
-    try { // It is not possible to update users that are not registered
-      keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-        newUser).await().indefinitely();
+    try {
+      keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newUser)
+        .onFailure(DuplicatedUserException.class).transform(x -> {
+          throw (DuplicatedUserException)x;
+        }).await().indefinitely();
 
-      assertFalse(true);
-    }catch (IllegalArgumentException e) {
-      assertFalse(false);
-    }finally {
-      keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-        newUser.username).await().indefinitely(); // Delete the test user
+      assertTrue(false);
+    } catch (DuplicatedUserException ex) {
+      assertThat(ex.getClass(), is(DuplicatedUserException.class));
+      assertThat(ex.getMessage(), containsString(newUser.username));
+    }
+  }
+
+  @Test
+  public void testCreateUserInvalidTokenErr() {
+    String accessToken = tkrKcCli.getAccessToken("admin");
+    UserRepresentation newUser = new UserRepresentation("mr", "rectangle", "mrrectangule@trikorasolutions.com", true,
+      "mrrectangule");
+
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await().indefinitely(); // Delete the test user
+    accessToken = "bad token";
+    try {
+      keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newUser)
+        .onFailure(InvalidTokenException.class).transform(x -> {
+          throw (InvalidTokenException) x;
+        }).await().indefinitely();
+
+      assertTrue(false);
+    } catch (InvalidTokenException ex) {
+      assertThat(ex.getClass(), is(InvalidTokenException.class));
+    }
+  }
+
+  @Test
+  public void testCreateUserNotFoundErr() {
+    String accessToken = tkrKcCli.getAccessToken("admin");
+    UserRepresentation newUser = new UserRepresentation("mr", "rectangle", "mrrectangule@trikorasolutions.com", true,
+      "mrrectangule");
+
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await().indefinitely(); // Delete the test user
+
+    try {
+      keycloakClientLogic.createUser("realm_is_not_defined", accessToken, "client_is_not_defined", newUser)
+        .onFailure(ClientNotFoundException.class).transform(x -> {
+          throw (ClientNotFoundException)x;
+        }).await().indefinitely();
+
+      assertTrue(false);
+    } catch (ClientNotFoundException ex) {
+      assertThat(ex.getClass(), is(ClientNotFoundException.class));
+      assertThat(ex.getMessage(), containsString("client_is_not_defined"));
+    }
+  }
+
+  @Test
+  public void testCreateUserInvalidUserErr() {
+    String accessToken = tkrKcCli.getAccessToken("admin");
+    UserRepresentation newUser = new UserRepresentation(null, null, null, true, null);
+
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await().indefinitely(); // Delete the test user
+
+    try {
+      keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newUser)
+        .onFailure(ArgumentsFormatException.class).transform(x -> {
+          throw (ArgumentsFormatException) x;
+        }).await().indefinitely();
+
+      assertTrue(false);
+    } catch (ArgumentsFormatException ex) {
+      assertThat(ex.getClass(), is(ArgumentsFormatException.class));
     }
   }
 
@@ -77,33 +133,41 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken("admin");
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle", "mrrectangule@trikorasolutions.com", true,
       "mrrectangule");
-    JsonArray logicResponse;
+    KeycloakUserRepresentation logicResponse;
 
-    keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      newUser).await().indefinitely(); // Create new user
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await().indefinitely(); // Delete the test user
+
+    keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newUser).await().indefinitely(); // Create new user
 
     logicResponse = keycloakClientLogic.getUserInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       newUser.username).await().indefinitely(); // Gets the user info
 
-    List<String> userEmail = logicResponse.stream().map(JsonObject.class::cast)
-      .filter(tuple -> tuple.getString("username").equals(newUser.username)).map(tuple -> tuple.getString("email"))
-      .collect(Collectors.toList());
-    assertThat(userEmail.size(), is(1));
-    assertThat(userEmail.toString(), containsString("mrrectangule@trikorasolutions.com"));
-
-    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      newUser.username).await().indefinitely(); // Delete the test user
+    assertThat(logicResponse.firstName, is(newUser.firstName));
+    assertThat(logicResponse.lastName, is(newUser.lastName));
+    assertThat(logicResponse.email, is(newUser.email));
+    assertThat(logicResponse.enabled, is(newUser.enabled));
+    assertThat(logicResponse.username, is(newUser.username));
+    assertThat(logicResponse.id, notNullValue());
   }
 
   @Test
   public void testReadUserErr() {
     String accessToken = tkrKcCli.getAccessToken("admin");
-    JsonArray logicResponse;
 
-    logicResponse = keycloakClientLogic.getUserInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "unknown").await().indefinitely(); // Ensure that the user does not exits
-    assertThat(logicResponse, emptyIterable());
+    try {
+      keycloakClientLogic.getUserInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+        "unknown").onFailure(NoSuchUserException.class).transform(x -> {
+        throw (NoSuchUserException) x;
+      }).await().indefinitely();
+
+      assertTrue(false);
+    } catch (NoSuchUserException ex) {
+      assertThat(ex.getClass(), is(NoSuchUserException.class));
+      assertThat(ex.getMessage(), containsString("unknown"));
+    }
   }
+
 
   @Test
   public void testUpdateUserOk() {
@@ -112,22 +176,18 @@ public class LogicCRUDTest {
       "mrrectangule");
     UserRepresentation updatedUser = new UserRepresentation("mr", "rectangle", "updatedemail@trikorasolutions.com",
       true, "mrrectangule");
-    JsonArray logicResponse;
+    KeycloakUserRepresentation logicResponse;
+
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await().indefinitely(); // Delete the test user
 
     keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newUser).await().indefinitely();
 
     logicResponse = keycloakClientLogic.updateUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       updatedUser.username, updatedUser).await().indefinitely(); // Updates the user email
 
-    List<String> updatedRepresentation = logicResponse.stream().map(JsonObject.class::cast)
-      .filter(tuple -> tuple.getString("username").equals(updatedUser.username)).map(tuple -> tuple.getString("email"))
-      .collect(Collectors.toList());
+    assertThat(logicResponse.email, is(updatedUser.email));
 
-    assertThat(updatedRepresentation.size(), is(1));
-    assertThat(updatedRepresentation.get(0), is("updatedemail@trikorasolutions.com"));
-
-    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      newUser.username).await().indefinitely(); // Delete the test user
   }
 
   @Test
@@ -136,10 +196,15 @@ public class LogicCRUDTest {
 
     try { // It is not possible to update users that are not registered
       keycloakClientLogic.updateUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-        "unknown", new UserRepresentation("a","b","c",false,"d")).await().indefinitely();
-      assertFalse(true);
-    } catch (NoSuchElementException e) {
-      assertFalse(false);
+        "unknown", new UserRepresentation("a","b","c",false,"d"))
+        .onFailure(NoSuchUserException.class).transform(x -> {
+        throw (NoSuchUserException) x;
+      }).await().indefinitely();
+
+      assertTrue(false);
+    } catch (NoSuchUserException ex) {
+      assertThat(ex.getClass(), is(NoSuchUserException.class));
+      assertThat(ex.getMessage(), containsString("unknown"));
     }
   }
 
@@ -148,14 +213,18 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken("admin");
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle", "mrrectangule@trikorasolutions.com", true,
       "mrrectangule");
-    JsonArray logicResponse;
+    Boolean logicResponse;
+
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await().indefinitely(); // Delete the test user
 
     keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       newUser).await().indefinitely(); // Create new user
 
     logicResponse = keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       newUser.username).await().indefinitely(); // Delete the test user
-    assertThat(logicResponse, notNullValue());
+
+    assertTrue(logicResponse);
   }
 
   @Test
@@ -164,10 +233,14 @@ public class LogicCRUDTest {
 
     try { // It is not possible to delete unregistered users
       keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-        "unknown").await().indefinitely();
-      assertFalse(true);
-    }catch (NoSuchElementException e){
-      assertFalse(false);
+        "unknown").onFailure(NoSuchUserException.class).transform(x -> {
+        throw (NoSuchUserException) x;
+      }).await().indefinitely();
+
+      assertTrue(false);
+    } catch (NoSuchUserException ex) {
+      assertThat(ex.getClass(), is(NoSuchUserException.class));
+      assertThat(ex.getMessage(), containsString("unknown"));
     }
   }
 
@@ -175,12 +248,12 @@ public class LogicCRUDTest {
   public void testListKeycloakUsers() {
     String accessToken = tkrKcCli.getAccessToken("admin");
 
-    JsonArray logicResponse = keycloakClientLogic.listAll(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId())
+    List<KeycloakUserRepresentation> logicResponse = keycloakClientLogic.listAll(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId())
       .await().indefinitely();
 
-    List<String> usernameList = logicResponse.stream().map(JsonObject.class::cast)
-      .map(tuple -> tuple.getString("username")).collect(Collectors.toList());
+    List<String> usernameList = logicResponse.stream()
+      .map(tuple -> tuple.username).collect(Collectors.toList());
+
     assertThat(usernameList, hasItems("jdoe", "admin", "mrsquare", "mrtriangle"));
   }
-
 }

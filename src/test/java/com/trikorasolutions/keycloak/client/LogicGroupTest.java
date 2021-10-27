@@ -1,6 +1,9 @@
 package com.trikorasolutions.keycloak.client;
 
 import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
+import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
+import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
+import com.trikorasolutions.keycloak.client.exception.NoSuchUserException;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 
@@ -13,8 +16,7 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-
-
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @QuarkusTest
 public class LogicGroupTest {
@@ -28,38 +30,41 @@ public class LogicGroupTest {
   @Test
   public void testGroupInfoOk() {
     String accessToken = tkrKcCli.getAccessToken("admin");
-    JsonArray logicResponse;
+    JsonObject logicResponse;
 
     logicResponse = keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       "tenant-tenant1").await().indefinitely();
 
-    List<String> userRepresentation = logicResponse.stream().map(JsonObject.class::cast)
-      .map(tuple -> tuple.getString("name"))
-      .collect(Collectors.toList());
-    assertThat(userRepresentation.size(), is(1));
-    assertThat(userRepresentation, hasItem("tenant-tenant1"));
+    assertThat(logicResponse.getString("name"), is("tenant-tenant1"));
   }
 
   @Test
   public void testGroupInfoErr() {
     String accessToken = tkrKcCli.getAccessToken("admin");
-    JsonArray logicResponse;
 
-    logicResponse = keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "unknown").await().indefinitely();
-    assertThat(logicResponse, emptyIterable());
+    try {
+      keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+      "unknown").onFailure(NoSuchGroupException.class).transform(x -> {
+        throw (NoSuchGroupException) x;
+      }).await().indefinitely();
+
+    assertTrue(false);
+    } catch (NoSuchGroupException ex) {
+      assertThat(ex.getClass(), is(NoSuchGroupException.class));
+      assertThat(ex.getMessage(), containsString("unknown"));
+    }
   }
 
   @Test
   public void testGroupListUsers() {
     String accessToken = tkrKcCli.getAccessToken("admin");
-    JsonArray logicResponse;
+    List<KeycloakUserRepresentation> logicResponse;
 
     logicResponse = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       "tenant-tenant1").await().indefinitely();
 
-    List<String> userRepresentation = logicResponse.stream().map(JsonObject.class::cast)
-      .map(tuple -> tuple.getString("username"))
+    List<String> userRepresentation = logicResponse.stream()
+      .map(user -> user.username)
       .collect(Collectors.toList());
     assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
     assertThat(userRepresentation, hasItem("jdoe"));
@@ -68,22 +73,20 @@ public class LogicGroupTest {
   @Test
   public void testPutAndRemoveUserInGroup() {
     String accessToken = tkrKcCli.getAccessToken("admin");
-    JsonArray logicResponse;
+    KeycloakUserRepresentation logicResponse;
+    List<KeycloakUserRepresentation> logicResponse2;
 
     // Put a new user in the group
     logicResponse = keycloakClientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       "mrsquare", "tenant-tenant1").await().indefinitely();
-    List<String> userRepresentation = logicResponse.stream().map(JsonObject.class::cast)
-      .map(tuple -> tuple.getString("username"))
-      .collect(Collectors.toList());
-    assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
-    assertThat(userRepresentation, hasItem("mrsquare"));
+
+    assertThat(logicResponse.username, is("mrsquare"));
 
     // Check if the change has been persisted in keycloak
-    logicResponse = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+    logicResponse2 = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       "tenant-tenant1").await().indefinitely();
-    userRepresentation = logicResponse.stream().map(JsonObject.class::cast)
-      .map(tuple -> tuple.getString("username"))
+    List<String> userRepresentation = logicResponse2.stream()
+      .map(user -> user.username)
       .collect(Collectors.toList());
     assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
     assertThat(userRepresentation, hasItem("mrsquare"));
@@ -91,17 +94,13 @@ public class LogicGroupTest {
     // Kick the user out of the group
     logicResponse = keycloakClientLogic.deleteUserFromGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       "mrsquare", "tenant-tenant1").await().indefinitely();
-    userRepresentation = logicResponse.stream().map(JsonObject.class::cast)
-      .map(tuple -> tuple.getString("username"))
-      .collect(Collectors.toList());
-    assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
-    assertThat(userRepresentation, hasItem("mrsquare"));
+    assertThat(logicResponse.username, is("mrsquare"));
 
     // Check if the change has been persisted in keycloak
-    logicResponse = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+    logicResponse2 = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       "tenant-tenant1").await().indefinitely();
-    userRepresentation = logicResponse.stream().map(JsonObject.class::cast)
-      .map(tuple -> tuple.getString("username"))
+    userRepresentation = logicResponse2.stream()
+      .map(user -> user.username)
       .collect(Collectors.toList());
     assertThat(userRepresentation.size(), greaterThanOrEqualTo(0));
     assertThat(userRepresentation, not(hasItem("mrsquare")));

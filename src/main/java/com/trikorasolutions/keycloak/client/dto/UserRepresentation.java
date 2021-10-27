@@ -1,5 +1,6 @@
 package com.trikorasolutions.keycloak.client.dto;
 
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
