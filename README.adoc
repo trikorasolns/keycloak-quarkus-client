@@ -58,7 +58,7 @@ import the realm.json with the command line (see below). For that reason the fla
 [source,bash]
 ----
 podman run --name trikora_keycloak_quarkus_client --security-opt label=disable \
-  --d --pod trikora_keycloak_quarkus_client_pod \
+  -d --pod trikora_keycloak_quarkus_client_pod \
   -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin  \
   -v /tmp/keycloak_tmp/:/tmp/ \
   quay.io/keycloak/keycloak:15.0.2

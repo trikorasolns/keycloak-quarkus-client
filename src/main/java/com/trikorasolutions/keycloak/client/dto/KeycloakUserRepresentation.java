@@ -8,14 +8,16 @@ import org.slf4j.LoggerFactory;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import java.util.Set;
+import java.util.StringJoiner;
 
 public class KeycloakUserRepresentation {
+
   @JsonIgnore
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakUserRepresentation.class);
 
   /**
-   * In this first version of the example, the credential of the users are
-   * their usernames. This feature will be enhanced in future releases.
+   * In this first version of the example, the credential of the users are their usernames. This
+   * feature will be enhanced in future releases.
    */
   public class UserDtoCredential {
 
@@ -63,7 +65,8 @@ public class KeycloakUserRepresentation {
     this.username = username;
   }
 
-  public KeycloakUserRepresentation(String id, String firstName, String lastName, String email, Boolean enabled, String username) {
+  public KeycloakUserRepresentation(String id, String firstName, String lastName, String email,
+      Boolean enabled, String username) {
     this.id = id;
     this.firstName = firstName;
     this.lastName = lastName;
@@ -75,7 +78,15 @@ public class KeycloakUserRepresentation {
 
   @Override
   public String toString() {
-    return "KeycloakUserRepresentation{" + "id='" + id + '\'' + ", firstName='" + firstName + '\'' + ", lastName='" + lastName + '\'' + ", email='" + email + '\'' + ", enabled=" + enabled + ", username='" + username + '\'' + ", credentials=" + credentials+ '}';
+    return new StringJoiner(", ", KeycloakUserRepresentation.class.getSimpleName() + "[", "]")
+        .add("id='" + id + "'")
+        .add("firstName='" + firstName + "'")
+        .add("lastName='" + lastName + "'")
+        .add("email='" + email + "'")
+        .add("enabled=" + enabled)
+        .add("username='" + username + "'")
+        .add("credentials=" + credentials)
+        .toString();
   }
 
   public static KeycloakUserRepresentation from(JsonObject from) {
@@ -84,13 +95,17 @@ public class KeycloakUserRepresentation {
     // admin and user endpoints
     if (from.containsKey("given_name")) {
       return new KeycloakUserRepresentation(from.getString("id"), from.getString("given_name"),
-        from.getString("family_name"), from.getString("email"), true, from.getString("preferred_username"));
-    } else if (!from.containsKey("lastName")) { // Admin user do not have a real name in this version
-      return new KeycloakUserRepresentation(from.getString("id"), "IS_CONFIDENTIAL", "IS_CONFIDENTIAL",
-        from.getString("email"), false, from.getString("username"));
+          from.getString("family_name"), from.getString("email"), true,
+          from.getString("preferred_username"));
+    } else if (!from.containsKey(
+        "lastName")) { // Admin user do not have a real name in this version
+      return new KeycloakUserRepresentation(from.getString("id"), "IS_CONFIDENTIAL",
+          "IS_CONFIDENTIAL",
+          from.getString("email"), false, from.getString("username"));
     } else {
       return new KeycloakUserRepresentation(from.getString("id"), from.getString("firstName"),
-        from.getString("lastName"), from.getString("email"), from.getBoolean("enabled"), from.getString("username"));
+          from.getString("lastName"), from.getString("email"), from.getBoolean("enabled"),
+          from.getString("username"));
     }
   }
 
@@ -105,8 +120,8 @@ public class KeycloakUserRepresentation {
     }
 
     return new KeycloakUserRepresentation(toParse.getString("id"), toParse.getString("firstName"),
-      toParse.getString("lastName"), toParse.getString("email"), toParse.getBoolean("enabled"),
-      toParse.getString("username"));
+        toParse.getString("lastName"), toParse.getString("email"), toParse.getBoolean("enabled"),
+        toParse.getString("username"));
   }
 
 }
