@@ -28,13 +28,13 @@ In this case, you need to map the 8090 with the 8080 because Quarkus is currentl
 
 [source,bash]
 ----
-podman pod create -p 8090:8080 -p 8543:8443 --name trikora_keycloak_quarkus_example_pod
+podman pod create -p 8090:8080 -p 8543:8443 --name trikora_keycloak_quarkus_client_pod
 ----
 
 ==== Delete the previous pod
 [source,bash]
 ----
-podman pod rm trikora_keycloak_quarkus_example_pod
+podman pod rm trikora_keycloak_quarkus_client_pod
 ----
 
 NOTE: You can see if there is any pod process active with the command:
@@ -57,8 +57,8 @@ import the realm.json with the command line (see below). For that reason the fla
 
 [source,bash]
 ----
-podman run --name trikora_keycloak_quarkus_example --security-opt label=disable \
-  --rm --pod trikora_keycloak_quarkus_example_pod \
+podman run --name trikora_keycloak_quarkus_client --security-opt label=disable \
+  --d --pod trikora_keycloak_quarkus_client_pod \
   -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin  \
   -v /tmp/keycloak_tmp/:/tmp/ \
   quay.io/keycloak/keycloak:15.0.2
@@ -127,7 +127,7 @@ Lastly, do not forget to add the admin user to the group in the Users section of
 
 [source,bash]
 ----
-podman exec -it trikora_keycloak_quarkus_example /opt/jboss/keycloak/bin/standalone.sh \
+podman exec -it trikora_keycloak_quarkus_client /opt/jboss/keycloak/bin/standalone.sh \
  -Djboss.socket.binding.port-offset=100 \
  -Dkeycloak.migration.action=export \
  -Dkeycloak.migration.provider=singleFile \
@@ -156,7 +156,7 @@ we hope that it could be fixed in futures releases.
 
 [source,bash]
 ----
-podman exec -it trikora_keycloak_quarkus_example /opt/jboss/keycloak/bin/standalone.sh \
+podman exec -it trikora_keycloak_quarkus_client /opt/jboss/keycloak/bin/standalone.sh \
  -Djboss.socket.binding.port-offset=100 \
  -Dkeycloak.migration.action=import \
  -Dkeycloak.migration.provider=singleFile \
