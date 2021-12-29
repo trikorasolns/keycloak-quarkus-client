@@ -2,20 +2,27 @@ package com.trikorasolutions.keycloak.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.jose4j.json.internal.json_simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.json.JsonArray;
 import javax.json.JsonObject;
+import java.util.Iterator;
 import java.util.Set;
+import java.util.StringJoiner;
 
+/**
+ * This is a Download DTO, that is, it shows only the desired fields when they are requested to KC
+ */
 public class KeycloakUserRepresentation {
+
   @JsonIgnore
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakUserRepresentation.class);
 
   /**
-   * In this first version of the example, the credential of the users are
-   * their usernames. This feature will be enhanced in future releases.
+   * In this first version of the example, the credential of the users are their usernames. This
+   * feature will be enhanced in future releases.
    */
   public class UserDtoCredential {
 
@@ -63,7 +70,8 @@ public class KeycloakUserRepresentation {
     this.username = username;
   }
 
-  public KeycloakUserRepresentation(String id, String firstName, String lastName, String email, Boolean enabled, String username) {
+  public KeycloakUserRepresentation(String id, String firstName, String lastName, String email,
+      Boolean enabled, String username) {
     this.id = id;
     this.firstName = firstName;
     this.lastName = lastName;
@@ -75,25 +83,119 @@ public class KeycloakUserRepresentation {
 
   @Override
   public String toString() {
-    return "KeycloakUserRepresentation{" + "id='" + id + '\'' + ", firstName='" + firstName + '\'' + ", lastName='" + lastName + '\'' + ", email='" + email + '\'' + ", enabled=" + enabled + ", username='" + username + '\'' + ", credentials=" + credentials+ '}';
+    return new StringJoiner(", ", KeycloakUserRepresentation.class.getSimpleName() + "[", "]")
+        .add("id='" + id + "'")
+        .add("firstName='" + firstName + "'")
+        .add("lastName='" + lastName + "'")
+        .add("email='" + email + "'")
+        .add("enabled=" + enabled)
+        .add("username='" + username + "'")
+        .add("credentials=" + credentials)
+        .toString();
   }
 
   public static KeycloakUserRepresentation from(JsonObject from) {
+    LOGGER.debug("from(JsonObject)... {}", from);
+    // All response must have a username (exception must be launched in bl)
+    if (from == null || from.getString("username") == null)
+      return null;
 
-    // Cannot reuse code since keycloak response fields have different keys between
-    // admin and user endpoints
-    if (from.containsKey("given_name")) {
-      return new KeycloakUserRepresentation(from.getString("id"), from.getString("given_name"),
-        from.getString("family_name"), from.getString("email"), true, from.getString("preferred_username"));
-    } else if (!from.containsKey("lastName")) { // Admin user do not have a real name in this version
-      return new KeycloakUserRepresentation(from.getString("id"), "IS_CONFIDENTIAL", "IS_CONFIDENTIAL",
-        from.getString("email"), false, from.getString("username"));
-    } else {
-      return new KeycloakUserRepresentation(from.getString("id"), from.getString("firstName"),
-        from.getString("lastName"), from.getString("email"), from.getBoolean("enabled"), from.getString("username"));
+    // Create the DTO only with the mandatory fields
+    KeycloakUserRepresentation parsedResponse = new KeycloakUserRepresentation(
+        from.getString("username"));
+
+    // Then add only the available optional fields
+    Iterator<String> iterator = from.keySet().iterator();
+    while (iterator.hasNext()) {
+      String key = iterator.next();
+      switch (key) {
+        case "id":
+          parsedResponse.setId(from.getString(key));
+          break;
+        case "given_name":
+        case "firstName":
+          parsedResponse.setFirstName(from.getString(key));
+          break;
+        case "family_name":
+        case "lastName":
+          parsedResponse.setLastName(from.getString(key));
+          break;
+        case "email":
+          parsedResponse.setEmail(from.getString(key));
+          break;
+        case "enabled":
+          parsedResponse.setEnabled(from.getBoolean(key));
+          break;
+        default:
+          break;
+      }
     }
+    //If null then set to false (uses short circuit)
+    parsedResponse.enabled = parsedResponse.enabled != null && parsedResponse.enabled;
+    return parsedResponse;
   }
 
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
+  }
+
+  public String getFirstName() {
+    return firstName;
+  }
+
+  public void setFirstName(String firstName) {
+    this.firstName = firstName;
+  }
+
+  public String getLastName() {
+    return lastName;
+  }
+
+  public void setLastName(String lastName) {
+    this.lastName = lastName;
+  }
+
+  public String getEmail() {
+    return email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public Boolean getEnabled() {
+    return enabled;
+  }
+
+  public void setEnabled(Boolean enabled) {
+    this.enabled = enabled;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
+  public Set<UserDtoCredential> getCredentials() {
+    return credentials;
+  }
+
+  public void setCredentials(Set<UserDtoCredential> credentials) {
+    this.credentials = credentials;
+  }
+
+  /**
+   * Delete if not used in future versions...
+   */
+  @Deprecated
   public static KeycloakUserRepresentation from(JsonArray from) {
     // We only parse one user, so it must be stored in position with index 0
     JsonObject toParse;
@@ -105,8 +207,7 @@ public class KeycloakUserRepresentation {
     }
 
     return new KeycloakUserRepresentation(toParse.getString("id"), toParse.getString("firstName"),
-      toParse.getString("lastName"), toParse.getString("email"), toParse.getBoolean("enabled"),
-      toParse.getString("username"));
+        toParse.getString("lastName"), toParse.getString("email"), toParse.getBoolean("enabled"),
+        toParse.getString("username"));
   }
-
 }

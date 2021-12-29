@@ -4,7 +4,14 @@ package com.trikorasolutions.keycloak.client.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
-
+/**
+ * This is an Upload DTO, that is, it packs all the necessary information for uploading it to KC.
+ * It is important to realize that KC has it own UserRepresentation, so it is necessary to parse
+ * this class before uploading.
+ *
+ * This class is much more short than the KC UserRepresentation, that is why we are using it on those
+ * first versions of our client.
+ */
 public class UserRepresentation {
   /**
    * In this first version of the example, the credential of the users are
