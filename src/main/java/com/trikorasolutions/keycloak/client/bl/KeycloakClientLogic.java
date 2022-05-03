@@ -10,7 +10,6 @@ import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
@@ -46,18 +45,18 @@ public class KeycloakClientLogic {
   public Uni<KeycloakUserRepresentation> createUser(final String realm, final String token,
       final String keycloakClientId, final UserRepresentation newUser) {
     return keycloakClient.createUser("Bearer " + token, realm, "implicit", keycloakClientId,
-            newUser).onFailure(ClientWebApplicationException.class).transform(ex -> {
-          if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
-            return new DuplicatedUserException(newUser.username);
-          } else if (ex.getMessage().contains(String.valueOf(UNAUTHORIZED.getStatusCode()))) {
-            return new InvalidTokenException();
-          } else if (ex.getMessage().contains(String.valueOf(NOT_FOUND.getStatusCode()))) {
-            return new ClientNotFoundException(keycloakClientId, realm);
-          } else {
-            return new ArgumentsFormatException(
-                "The user representation provided to Keycloak is incorrect");
-          }
-        }).replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
+        newUser).onFailure(ClientWebApplicationException.class).transform(ex -> {
+      if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
+        return new DuplicatedUserException(newUser.username);
+      } else if (ex.getMessage().contains(String.valueOf(UNAUTHORIZED.getStatusCode()))) {
+        return new InvalidTokenException();
+      } else if (ex.getMessage().contains(String.valueOf(NOT_FOUND.getStatusCode()))) {
+        return new ClientNotFoundException(keycloakClientId, realm);
+      } else {
+        return new ArgumentsFormatException(
+            "The user representation provided to Keycloak is incorrect");
+      }
+    }).replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
   }
 
   /**
@@ -87,7 +86,8 @@ public class KeycloakClientLogic {
       final String keycloakClientId, final String userName) {
     return keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId,
             userName)
-        .map(jsonArray -> (jsonArray.isEmpty() || jsonArray.size() > 1) ? null : jsonArray.get(0).asJsonObject())
+        .map(jsonArray -> (jsonArray.isEmpty() || jsonArray.size() > 1) ? null
+            : jsonArray.get(0).asJsonObject())
         .onItem().ifNull().failWith(() -> new NoSuchUserException(userName)).onItem().ifNotNull()
         .transform(KeycloakUserRepresentation::from);
   }
@@ -114,8 +114,8 @@ public class KeycloakClientLogic {
       final String keycloakClientId) {
     return keycloakClient.listAll("Bearer " + token, realm, "implicit", keycloakClientId).onItem()
         .transform(userList -> userList.stream().map(JsonValue::asJsonObject)
-                .map(KeycloakUserRepresentation::from)
-                .collect(Collectors.toList()));
+            .map(KeycloakUserRepresentation::from)
+            .collect(Collectors.toList()));
   }
 
   /**
@@ -196,5 +196,15 @@ public class KeycloakClientLogic {
             tuple2 -> keycloakClient.deleteUserFromGroup("Bearer " + token, realm, "implicit",
                 keycloakClientId, tuple2.getItem1(), tuple2.getItem2()))
         .replaceWith(this.getUserInfo(realm, token, keycloakClientId, userName));
+  }
+
+  public Uni<List<KeycloakUserRepresentation>> getAllUsersInRole(final String realm,
+      final String token, final String keycloakClientId, final String userName, final String role) {
+    return keycloakClient.getAllUsersInRole("Bearer " + token, realm, "implicit", keycloakClientId,
+        role).map(
+        userList -> userList.stream()
+            .map(JsonValue::asJsonObject)
+            .map(KeycloakUserRepresentation::from)
+            .collect(Collectors.toList()));
   }
 }
