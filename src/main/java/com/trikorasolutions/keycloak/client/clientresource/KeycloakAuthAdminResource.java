@@ -3,7 +3,9 @@ package com.trikorasolutions.keycloak.client.clientresource;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import org.keycloak.representations.idm.RoleRepresentation;
 import javax.json.JsonArray;
+import javax.json.JsonObject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 
@@ -148,11 +150,27 @@ public interface KeycloakAuthAdminResource {
       @QueryParam("client_id") String clientId, @PathParam("id") String id,
       @PathParam("groupId") String groupId);
 
+  /**
+   * Return the users which have ASSIGNED the given role
+   * @param roleName role name
+   * @return JsonArray with all the users
+   */
   @GET
-  @Path("/{realm}/clients/{id}/roles/{roleName}/users")
+  @Path("/realms/{realm}/roles/{role-name}/users")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getAllUsersInRole(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @PathParam("roleName") String roleName);
-}
+      @QueryParam("client_id") String clientId, @PathParam("role-name") String roleName);
 
+  /**
+   * Return ALL the roles of one user
+   * @param userId id of the user to be queried
+   * @return
+   */
+  @GET
+  @Path("/realms/{realm}/users/{id}/role-mappings/realm/composite")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getUserRoles(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String userId);
+}

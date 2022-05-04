@@ -236,3 +236,64 @@ import ours from the command line.
 
 Other possible solution to try would be launch keycloak in version 6.0.0 with the realm and then update keycloak.
 Or using: https://www.keycloak.org/docs/latest/server_development/#_script_providers
+
+== Curl
+*GET TOKEN FROM KC*
+The token expired each 2 min aprox
+export TKN=$(curl -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=pm@test" \
+-d 'password=pm@test' \
+-d 'grant_type=password' \
+-d 'client_id=admin-cli' | jq -r '.access_token')
+
+*GET LIST OF REALMS FROM KC*
+curl -X GET 'http://localhost:8090/auth/admin/realms' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer $TKN" | jq .
+
+*GET ROLE INFO*
+curl -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/roles/project_manager' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+*GET USERS IN ROLE*
+curl -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/clients/bd0be2f6-e547-4a13-9a43-dc0884820b10/roles/project_manager/users' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+*GET ASSIGNED ROLES OF ONE USER*
+curl -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/users/ca399bfe-2e43-4891-9fef-cec854ec29fa/role-mappings/realm' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+*GET EFFECTIVE ROLES OF ONE USER*
+curl -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/users/ca399bfe-2e43-4891-9fef-cec854ec29fa/role-mappings/realm/composite' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+*GET ASSIGNED ROLES OF ONE GROUP*
+curl -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/groups/1445ea0b-8ad7-4259-b2e5-effbfb2905bc/role-mappings/realm' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+*GET EFFECTIVE ROLES OF ONE GROUP*
+curl -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/groups/1445ea0b-8ad7-4259-b2e5-effbfb2905bc/role-mappings/realm/composite' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+*GET USER BY ID*
+curl -X GET 'http://localhost:8090/auth/admin/realms/trikorasolutions/users/ca399bfe-2e43-4891-9fef-cec854ec29fa' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+
+
+
+

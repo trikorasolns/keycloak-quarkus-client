@@ -14,6 +14,7 @@ import javax.json.JsonObject;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,18 +30,18 @@ public class LogicGroupTest {
 
   @Test
   public void testGroupInfoOk() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     JsonObject logicResponse;
 
     logicResponse = keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "tenant-tenant1").await().indefinitely();
+      "TENANT_TEST").await().indefinitely();
 
-    assertThat(logicResponse.getString("name"), is("tenant-tenant1"));
+    assertThat(logicResponse.getString("name"), is("TENANT_TEST"));
   }
 
   @Test
   public void testGroupInfoErr() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
 
     try {
       keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -57,34 +58,34 @@ public class LogicGroupTest {
 
   @Test
   public void testGroupListUsers() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     List<KeycloakUserRepresentation> logicResponse;
 
     logicResponse = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "tenant-tenant1").await().indefinitely();
+      "TENANT_TEST").await().indefinitely();
 
     List<String> userRepresentation = logicResponse.stream()
       .map(user -> user.username)
       .collect(Collectors.toList());
     assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
-    assertThat(userRepresentation, hasItem("jdoe"));
+    assertThat(userRepresentation, hasItem(ADM));
   }
 
   @Test
   public void testPutAndRemoveUserInGroup() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     KeycloakUserRepresentation logicResponse;
     List<KeycloakUserRepresentation> logicResponse2;
 
     // Put a new user in the group
     logicResponse = keycloakClientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "mrsquare", "tenant-tenant1").await().indefinitely();
+      "mrsquare", "TENANT_TEST").await().indefinitely();
 
     assertThat(logicResponse.username, is("mrsquare"));
 
     // Check if the change has been persisted in keycloak
     logicResponse2 = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "tenant-tenant1").await().indefinitely();
+      "TENANT_TEST").await().indefinitely();
     List<String> userRepresentation = logicResponse2.stream()
       .map(user -> user.username)
       .collect(Collectors.toList());
@@ -93,12 +94,12 @@ public class LogicGroupTest {
 
     // Kick the user out of the group
     logicResponse = keycloakClientLogic.deleteUserFromGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "mrsquare", "tenant-tenant1").await().indefinitely();
+      "mrsquare", "TENANT_TEST").await().indefinitely();
     assertThat(logicResponse.username, is("mrsquare"));
 
     // Check if the change has been persisted in keycloak
     logicResponse2 = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "tenant-tenant1").await().indefinitely();
+      "TENANT_TEST").await().indefinitely();
     userRepresentation = logicResponse2.stream()
       .map(user -> user.username)
       .collect(Collectors.toList());

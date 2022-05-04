@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,7 +31,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testCreateUserOk() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule");
@@ -49,7 +50,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testCreateUserDuplicatedErr() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule");
@@ -77,7 +78,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testCreateUserInvalidTokenErr() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule");
@@ -101,7 +102,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testCreateUserNotFoundErr() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule");
@@ -126,7 +127,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testCreateUserInvalidUserErr() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation(null, null, null, true, null);
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -148,7 +149,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testCreateWithOutEmailOk() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle", null, true,
         "mrrectangule");
     KeycloakUserRepresentation logicResponse;
@@ -174,7 +175,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testReadUserOk() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule");
@@ -201,7 +202,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testReadUserErr() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
 
     try {
       keycloakClientLogic.getUserInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -219,7 +220,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testUpdateUserOk() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule");
@@ -245,7 +246,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testUpdateUserErr() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
 
     try { // It is not possible to update users that are not registered
       keycloakClientLogic.updateUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -263,7 +264,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testDeleteUserOk() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule");
@@ -285,7 +286,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testDeleteUserErr() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
 
     try { // It is not possible to delete unregistered users
       keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -302,7 +303,7 @@ public class LogicCRUDTest {
 
   @Test
   public void testListKeycloakUsers() {
-    String accessToken = tkrKcCli.getAccessToken("admin");
+    String accessToken = tkrKcCli.getAccessToken(ADM);
 
     List<KeycloakUserRepresentation> logicResponse = keycloakClientLogic.listAll(
             tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId())
@@ -311,6 +312,6 @@ public class LogicCRUDTest {
     List<String> usernameList = logicResponse.stream()
         .map(tuple -> tuple.username).collect(Collectors.toList());
 
-    assertThat(usernameList, hasItems("jdoe", "admin", "mrsquare", "mrtriangle"));
+    assertThat(usernameList, hasItems("jdoe", ADM, "mrsquare", "mrtriangle"));
   }
 }

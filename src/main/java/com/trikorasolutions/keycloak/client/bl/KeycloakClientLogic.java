@@ -2,6 +2,7 @@ package com.trikorasolutions.keycloak.client.bl;
 
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthAdminResource;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
+import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.exception.*;
 import io.smallrye.mutiny.Uni;
@@ -11,6 +12,7 @@ import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.enterprise.context.ApplicationScoped;
+import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
 import java.util.List;
@@ -31,6 +33,8 @@ import static javax.ws.rs.core.Response.Status.*;
 public class KeycloakClientLogic {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakClientLogic.class);
+  private static final String BEARER = "Bearer ";
+  private static final String GRANT_TYPE = "implicit";
 
   @RestClient
   KeycloakAuthAdminResource keycloakClient;
@@ -44,7 +48,7 @@ public class KeycloakClientLogic {
    */
   public Uni<KeycloakUserRepresentation> createUser(final String realm, final String token,
       final String keycloakClientId, final UserRepresentation newUser) {
-    return keycloakClient.createUser("Bearer " + token, realm, "implicit", keycloakClientId,
+    return keycloakClient.createUser(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
         newUser).onFailure(ClientWebApplicationException.class).transform(ex -> {
       if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
         return new DuplicatedUserException(newUser.username);
@@ -70,7 +74,7 @@ public class KeycloakClientLogic {
       final String keycloakClientId, final String userName, final UserRepresentation newUser) {
     return this.getUserInfo(realm, token, keycloakClientId, userName)
         .map(userInfo -> userInfo.id).call(
-            userId -> keycloakClient.updateUser("Bearer " + token, realm, "implicit",
+            userId -> keycloakClient.updateUser(BEARER + token, realm, GRANT_TYPE,
                 keycloakClientId, userId, newUser))
         .replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
   }
@@ -84,7 +88,7 @@ public class KeycloakClientLogic {
    */
   public Uni<KeycloakUserRepresentation> getUserInfo(final String realm, final String token,
       final String keycloakClientId, final String userName) {
-    return keycloakClient.getUserInfo("Bearer " + token, realm, "implicit", keycloakClientId,
+    return keycloakClient.getUserInfo(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
             userName)
         .map(jsonArray -> (jsonArray.isEmpty() || jsonArray.size() > 1) ? null
             : jsonArray.get(0).asJsonObject())
@@ -101,7 +105,7 @@ public class KeycloakClientLogic {
   public Uni<Boolean> deleteUser(final String realm, final String token,
       final String keycloakClientId, final String userName) {
     return this.getUserInfo(realm, token, keycloakClientId, userName)
-        .call(user -> keycloakClient.deleteUser("Bearer " + token, realm, "implicit",
+        .call(user -> keycloakClient.deleteUser(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, user.id)).map(x -> Boolean.TRUE);
   }
 
@@ -112,7 +116,7 @@ public class KeycloakClientLogic {
    */
   public Uni<List<KeycloakUserRepresentation>> listAll(final String realm, final String token,
       final String keycloakClientId) {
-    return keycloakClient.listAll("Bearer " + token, realm, "implicit", keycloakClientId).onItem()
+    return keycloakClient.listAll(BEARER + token, realm, GRANT_TYPE, keycloakClientId).onItem()
         .transform(userList -> userList.stream().map(JsonValue::asJsonObject)
             .map(KeycloakUserRepresentation::from)
             .collect(Collectors.toList()));
@@ -126,7 +130,7 @@ public class KeycloakClientLogic {
    */
   public Uni<JsonObject> getGroupInfo(final String realm, final String token,
       final String keycloakClientId, final String groupName) {
-    return keycloakClient.getGroupInfo("Bearer " + token, realm, "implicit", keycloakClientId,
+    return keycloakClient.getGroupInfo(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
             groupName).map(jsonArray -> (jsonArray.isEmpty() || jsonArray.size() > 1) ? null
             : jsonArray.get(0).asJsonObject())
         .onItem().ifNull().failWith(() -> new NoSuchGroupException(groupName));
@@ -142,11 +146,27 @@ public class KeycloakClientLogic {
       final String token, final String keycloakClientId, final String groupName) {
     return this.getGroupInfo(realm, token, keycloakClientId, groupName)
         .map(userInfo -> userInfo.getString("id")).onItem().transformToUni(
-            userId -> keycloakClient.getGroupUsers("Bearer " + token, realm, "implicit",
+            userId -> keycloakClient.getGroupUsers(BEARER + token, realm, GRANT_TYPE,
                 keycloakClientId, userId))
         .map(userList -> userList.stream().map(JsonValue::asJsonObject)
             .map(KeycloakUserRepresentation::from)
             .collect(Collectors.toList()));
+  }
+
+  /**
+   * Return the UserRepresentation of one user queried by his username. It can throw
+   * NoSuchUserException.
+   *
+   * @param userName username of the user witch is going to be searched.
+   * @return a UserRepresentation of the user.
+   */
+  public Uni<List<RoleRepresentation>> getUserRoles(final String realm, final String token,
+      final String keycloakClientId, final String userName) {
+    return this.getUserInfo(realm, token, keycloakClientId, userName)
+        .map(userInfo -> userInfo.id)
+        .flatMap(userId-> keycloakClient.getUserRoles(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
+            userId))
+        .map(RoleRepresentation::allFrom);
   }
 
   /**
@@ -168,7 +188,7 @@ public class KeycloakClientLogic {
         .asTuple();
 
     return combinedUniTuple.flatMap(
-            tuple2 -> keycloakClient.putUserInGroup("Bearer " + token, realm, "implicit",
+            tuple2 -> keycloakClient.putUserInGroup(BEARER + token, realm, GRANT_TYPE,
                 keycloakClientId, tuple2.getItem1(), tuple2.getItem2()))
         .replaceWith(this.getUserInfo(realm, token, keycloakClientId, userName));
   }
@@ -193,18 +213,32 @@ public class KeycloakClientLogic {
         .asTuple();
 
     return combinedUniTuple.flatMap(
-            tuple2 -> keycloakClient.deleteUserFromGroup("Bearer " + token, realm, "implicit",
+            tuple2 -> keycloakClient.deleteUserFromGroup(BEARER + token, realm, GRANT_TYPE,
                 keycloakClientId, tuple2.getItem1(), tuple2.getItem2()))
         .replaceWith(this.getUserInfo(realm, token, keycloakClientId, userName));
   }
 
-  public Uni<List<KeycloakUserRepresentation>> getAllUsersInRole(final String realm,
-      final String token, final String keycloakClientId, final String userName, final String role) {
-    return keycloakClient.getAllUsersInRole("Bearer " + token, realm, "implicit", keycloakClientId,
+  public Uni<List<KeycloakUserRepresentation>> getAllUsersInAssignedRole(final String realm,
+      final String token, final String keycloakClientId, final String role) {
+
+    return keycloakClient.getAllUsersInRole(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
         role).map(
         userList -> userList.stream()
             .map(JsonValue::asJsonObject)
             .map(KeycloakUserRepresentation::from)
             .collect(Collectors.toList()));
   }
+
+//  public Uni<List<KeycloakUserRepresentation>> getAllUserInEffectiveRole(final String realm, final String token,
+//      final String keycloakClientId, final String userName, final String groupName) {
+//    Uni<String> userId = this.getUserInfo(realm, token, keycloakClientId, userName).onItem()
+//        .transform(userInfo -> userInfo.id);
+//    Uni<String> groupId = this.getGroupInfo(realm, token, keycloakClientId, groupName).onItem()
+//        .transform(userInfo -> userInfo.getString("id"));
+//    Uni<Tuple2<String, String>> combinedUniTuple = Uni.combine().all().unis(userId, groupId)
+//        .asTuple();
+//
+//  }
+
+
 }
