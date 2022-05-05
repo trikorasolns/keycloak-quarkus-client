@@ -2,7 +2,7 @@
 
 :toc: left
 :icons: font
-:source-highlighter: rouge
+:source-highlighter: highlight.js
 :description: Keycloak example.
 :hardbreaks:
 
@@ -443,13 +443,16 @@ curl -s -X GET \
 ----
 
 *GET GROUPS WITH ROLE*
-[source, shell script]
+[source,bash]
 ----
-curl -s -X GET \
-'http://localhost:8090/auth/admin/realms/trikorasolutions/roles/project_manager/groups' \
--H "Accept: application/json" \
--H "Authorization: Bearer ${TKN}" | jq .
+$ curl -s -X GET \
+  'http://localhost:8090/auth/admin/realms/trikorasolutions/roles/project_manager/groups' \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer ${TKN}" | jq .
+----
 
+[source,json]
+----
 [
   {
     "id": "1445ea0b-8ad7-4259-b2e5-effbfb2905bc",
@@ -458,6 +461,7 @@ curl -s -X GET \
   }
 ]
 ----
+
 
 *GET ASSIGNED ROLES OF ONE USER*
 [source, shell script]

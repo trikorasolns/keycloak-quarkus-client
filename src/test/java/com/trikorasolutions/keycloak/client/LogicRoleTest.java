@@ -57,22 +57,4 @@ public class LogicRoleTest {
     assertThat(logicResponse.size(), is(greaterThanOrEqualTo(1)));
   }
 
-  @Test
-  public void testPrintUserAndGroup() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
-
-    KeycloakUserRepresentation logicResponse = keycloakClientLogic.getUserInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), ADM).await().indefinitely();
-    LOGGER.info("USER: \n{} ",logicResponse);
-    GroupRepresentation logicResponse2 = keycloakClientLogic.getGroupInfo(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), "Project Manager").await()
-        .indefinitely();
-    LOGGER.info("GROUP: \n{} ",logicResponse2);
-
-    List<GroupRepresentation> logicResponse3 = keycloakClientLogic.listAllGroups(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId()).await()
-        .indefinitely();
-    LOGGER.info("All GROUP: \n{} ",logicResponse3);
-  }
-
-
 }
