@@ -50,7 +50,7 @@ public class RoleRepresentation {
   }
 
   public static RoleRepresentation from(JsonObject from) {
-    LOGGER.info("from(JsonObject)... {}", from);
+    LOGGER.debug("from(JsonObject)... {}", from);
     // All response must have a username (exception must be launched in bl)
     if (from == null || from.getString("id") == null) {
       return null;

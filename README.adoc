@@ -416,7 +416,7 @@ curl -s -X GET \
 }
 ----
 
-*GET USERS IN ROLE*
+*GET USERS WITH ROLE*
 [source, shell script]
 ----
 curl -s -X GET \
@@ -438,6 +438,23 @@ curl -s -X GET \
     "disableableCredentialTypes": [],
     "requiredActions": [],
     "notBefore": 0
+  }
+]
+----
+
+*GET GROUPS WITH ROLE*
+[source, shell script]
+----
+curl -s -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/roles/project_manager/groups' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+[
+  {
+    "id": "1445ea0b-8ad7-4259-b2e5-effbfb2905bc",
+    "name": "Project Manager",
+    "path": "/Project Manager"
   }
 ]
 ----

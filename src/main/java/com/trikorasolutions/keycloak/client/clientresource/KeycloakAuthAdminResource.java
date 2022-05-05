@@ -90,7 +90,19 @@ public interface KeycloakAuthAdminResource {
   @GET
   @Path("/realms/{realm}/users")
   @Produces(MediaType.APPLICATION_JSON)
-  Uni<JsonArray> listAll(@HeaderParam("Authorization") String bearerToken,
+  Uni<JsonArray> listAllUsers(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId);
+
+  /**
+   * This method return a list with all the groups in the client provided as argument
+   *
+   * @return a JsonArray of Keycloak GroupRepresentations.
+   */
+  @GET
+  @Path("/realms/{realm}/groups")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> listAllGroups(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId);
 
@@ -163,9 +175,21 @@ public interface KeycloakAuthAdminResource {
       @QueryParam("client_id") String clientId, @PathParam("role-name") String roleName);
 
   /**
+   * Return the groups which have ASSIGNED the given role
+   * @param roleName role name
+   * @return JsonArray with all the groups
+   */
+  @GET
+  @Path("/realms/{realm}/roles/{role-name}/groups")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getAllGroupsInRole(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("role-name") String roleName);
+
+  /**
    * Return ALL the roles of one user
    * @param userId id of the user to be queried
-   * @return
+   * @return JsonArray with the roles
    */
   @GET
   @Path("/realms/{realm}/users/{id}/role-mappings/realm/composite")
@@ -173,4 +197,16 @@ public interface KeycloakAuthAdminResource {
   Uni<JsonArray> getUserRoles(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId, @PathParam("id") String userId);
+
+  /**
+   * Return ALL the roles of one group
+   * @param groupId id of the user to be queried
+   * @return JsonArray with the roles
+   */
+  @GET
+  @Path("/realms/{realm}/groups/{id}/role-mappings/realm/composite")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getGroupRoles(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String groupId);
 }
