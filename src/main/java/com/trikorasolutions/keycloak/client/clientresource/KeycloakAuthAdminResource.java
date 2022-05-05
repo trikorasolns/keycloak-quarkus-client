@@ -3,9 +3,7 @@ package com.trikorasolutions.keycloak.client.clientresource;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
-import org.keycloak.representations.idm.RoleRepresentation;
 import javax.json.JsonArray;
-import javax.json.JsonObject;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 

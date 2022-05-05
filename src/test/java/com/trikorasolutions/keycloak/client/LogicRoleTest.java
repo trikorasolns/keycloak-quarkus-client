@@ -1,7 +1,6 @@
 package com.trikorasolutions.keycloak.client;
 
 import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
-import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import io.quarkus.test.junit.QuarkusTest;
@@ -10,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 
@@ -18,6 +16,7 @@ import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @QuarkusTest
 public class LogicRoleTest {
@@ -55,6 +54,14 @@ public class LogicRoleTest {
             tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), "project_manager").await()
         .indefinitely();
     assertThat(logicResponse.size(), is(greaterThanOrEqualTo(1)));
+  }
+
+  @Test
+  public void testGetToken() {
+    String tok = keycloakClientLogic.getTokenForUser(
+            tkrKcCli.getRealmName(), tkrKcCli.getClientId(), tkrKcCli.getClientSecret()).await()
+        .indefinitely();
+    assertThat(tok.length(), is(greaterThanOrEqualTo(1)));
   }
 
 }

@@ -1,16 +1,19 @@
 package com.trikorasolutions.keycloak.client.bl;
 
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthAdminResource;
+import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthorizationResource;
 import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.exception.*;
+import io.restassured.RestAssured;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.groups.UniJoin.Builder;
 import io.smallrye.mutiny.tuples.Tuple2;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.ClientWebApplicationException;
+import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.enterprise.context.ApplicationScoped;
@@ -37,9 +40,38 @@ public class KeycloakClientLogic {
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakClientLogic.class);
   private static final String BEARER = "Bearer ";
   private static final String GRANT_TYPE = "implicit";
+  private static final String GRANT_TYPE_PS = "password";
 
   @RestClient
   KeycloakAuthAdminResource keycloakClient;
+
+  @RestClient
+  KeycloakAuthorizationResource keycloakUserClient;
+
+
+  public Uni<String> getTokenForUser(final String realm, final String keycloakClientId,
+      final String secret) {
+    LOGGER.warn("Getting token with params:\n"
+        + "realm:{},\n"
+        + "client_id:{}\n"
+        + "secrect:{}", realm, keycloakClientId, secret);
+    String tok = RestAssured.given()
+        .param("grant_type", "client_credentials")
+        .param("client_id", keycloakClientId)
+        .param("client_secret", secret)
+        .when()
+        .post("http://localhost:8090/auth/realms/trikorasolutions" + "/protocol/openid-connect/token")
+        .as(AccessTokenResponse.class)
+        .getToken();
+    return Uni.createFrom().item(tok);
+
+//    return keycloakUserClient.getToken(realm, "client_credentials", keycloakClientId, secret)
+//        .onFailure().invoke(ex->LOGGER.warn("ERR KC: {}." + ex))
+//        .map(jsonArray -> (jsonArray.size() != 1) ? null : jsonArray.get(0).asJsonObject())
+//        .onItem().ifNull().failWith(() -> new TrikoraGenericException("More than one token"))
+//        .onItem().ifNotNull()
+//        .transform(obj -> obj.getString("access_token"));
+  }
 
   /**
    * Creates a new user in the Keycloak database. It can throw DuplicatedUserException,
@@ -187,7 +219,7 @@ public class KeycloakClientLogic {
   /**
    * Return a List of RoleRepresentation with all the roles to the User.
    *
-   * @param id  of the user witch is going to be searched.
+   * @param id of the user witch is going to be searched.
    * @return a List of RoleRepresentation with all the roles assigned to the User.
    */
   public Uni<List<RoleRepresentation>> getUserRolesById(final String realm, final String token,

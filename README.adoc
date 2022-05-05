@@ -660,6 +660,85 @@ curl -s -X GET 'http://localhost:8090/auth/admin/realms/trikorasolutions/users/c
 }
 ----
 
+== Tokens
+(example with different credential types)
+https://www.appsdeveloperblog.com/oauth-2-implicit-grant-type-flow-example/
+
+Get what you need using sed (in this examples we are using the jq formatter, but it requires installation):
+[source, bash]
+----
+TOKEN=`echo $RESULT | sed 's/.*access_token":"//g' | sed 's/".*//g'`
+----
+*SEE KEYCLOAK KEYS*
+[source, bash]
+----
+curl -s -L -X GET 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/certs' | jq
+----
+[source, json]
+----
+{
+  "keys": [
+    {
+      "kid": "JyXI9mk21U9-dtqOMiizpcx1CXBi2mdxVCMwVAWgtQI",
+      "kty": "RSA",
+      "alg": "RS256",
+      "use": "enc",
+      "n": "jTDua4sKrcLXuNGa9Z3a4hJz4r8Cf07bU_6DTsqVO9mSouUNYNAsZZtaa9Ih5LEudX_vdzhP8yxjm45IDKFBymSJWczh9jNRZryz7bfM4XBnr2keFTqS1ACJSs7C4d-DdNkt5X3C6rjdf-Sxvk7i9m1KGCUV1NGsgQxakdZ_c_qi9VTDGgVXVTx6mr59OMBKvH3JJtkxT4iF0LT9JHu9XhEgWPWJS44o4appDKth9Yo5pDdk7QFB9KB_SFqmTYbQZfyLJsZ_k4mAp83y524jM0TM7HTR7BfxlchbYnTyesSb16FTW2jIMlzI0QGzMQzEiUYg2oKHpOX2w-skSQmqVw",
+      "e": "AQAB",
+      "x5c": [
+        "MIICrzCCAZcCBgF8MUXExTANBgkqhkiG9w0BAQsFADAbMRkwFwYDVQQDDBB0cmlrb3Jhc29sdXRpb25zMB4XDTIxMDkyOTExMTUyOFoXDTMxMDkyOTExMTcwOFowGzEZMBcGA1UEAwwQdHJpa29yYXNvbHV0aW9uczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAI0w7muLCq3C17jRmvWd2uISc+K/An9O21P+g07KlTvZkqLlDWDQLGWbWmvSIeSxLnV/73c4T/MsY5uOSAyhQcpkiVnM4fYzUWa8s+23zOFwZ69pHhU6ktQAiUrOwuHfg3TZLeV9wuq43X/ksb5O4vZtShglFdTRrIEMWpHWf3P6ovVUwxoFV1U8epq+fTjASrx9ySbZMU+IhdC0/SR7vV4RIFj1iUuOKOGqaQyrYfWKOaQ3ZO0BQfSgf0hapk2G0GX8iybGf5OJgKfN8uduIzNEzOx00ewX8ZXIW2J08nrEm9ehU1toyDJcyNEBszEMxIlGINqCh6Tl9sPrJEkJqlcCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAZcZQUbP1aFyn6+sj3FiVXu61OQyZ0D+xKMpFs2H3NnciAhbR54TKcuLLkpbjgkKnXJfKvnpeAVJsy03LJ/jjm8y9RJ5nau8tTIN4u9gdnt1EuCnlsuixuTPcHSG/0VOm3hLbTgMBHHR9Z+AwEpd02e/TeKufsZhKwq5zdQ83U2xfnSzKiPNSMPx3KFVwQ1hgye5aPFsqjrVeQ2mPb5lTiOsa9XWjBms4iNS0QVr3DL3SPW2U7CsuL+N+HdtQInz+liPGh+wxJI4SS0hJLWiXnM4/Z6jBB8k2UZOglM6qVmGvXiSHY5dXME7tt8kyZ7goXnVnI0mfsiy5vhAwCVDr7g=="
+      ],
+      "x5t": "QyVQnp3rRR2dz5xd7-gdkuz5yus",
+      "x5t#S256": "QOoAblPMbWed-kgrPQ0HF7eOuq9C_P2M8z_aMALeQ40"
+    },
+    {
+      "kid": "e4uF0w1q91Hum3puqqlaEEbTwtZp-TggrM-a495Y_zs",
+      "kty": "RSA",
+      "alg": "RS256",
+      "use": "sig",
+      "n": "m6l-JuPQa39k9t2Of4VVkm-ZdKp9bBdO-eMtDDq1lZ6euyZ0fyxopQDiOYfmwYCW7HINFC6k7sBRI_XIU37OVMjwhdLmcDcLiMECTk104DQzC-DLXzdnllHlj_wHOHcE-bQIK1upUmrTWNd7-A9OLCF-Izc7bW3QG3BqZ5N_wUaI6MWTcEEvSCvrGEcK17Idt_sQkIHzdVA2lgQjlPJCalS-zaSLbXcKqV04CDBdDAfbznkHcdAzVzAabi0nkj--sO9YyIKtP72jEEOeRGk0sRWPhS8n5u9JpO23uRyfGv8V0XPOlZH1F7zL2B_V5mpXDnTl4rG3ClahJ3EGx3Mo0Q",
+      "e": "AQAB",
+      "x5c": [
+        "MIICrzCCAZcCBgF8MUXENzANBgkqhkiG9w0BAQsFADAbMRkwFwYDVQQDDBB0cmlrb3Jhc29sdXRpb25zMB4XDTIxMDkyOTExMTUyOFoXDTMxMDkyOTExMTcwOFowGzEZMBcGA1UEAwwQdHJpa29yYXNvbHV0aW9uczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJupfibj0Gt/ZPbdjn+FVZJvmXSqfWwXTvnjLQw6tZWenrsmdH8saKUA4jmH5sGAluxyDRQupO7AUSP1yFN+zlTI8IXS5nA3C4jBAk5NdOA0Mwvgy183Z5ZR5Y/8Bzh3BPm0CCtbqVJq01jXe/gPTiwhfiM3O21t0BtwameTf8FGiOjFk3BBL0gr6xhHCteyHbf7EJCB83VQNpYEI5TyQmpUvs2ki213CqldOAgwXQwH2855B3HQM1cwGm4tJ5I/vrDvWMiCrT+9oxBDnkRpNLEVj4UvJ+bvSaTtt7kcnxr/FdFzzpWR9Re8y9gf1eZqVw505eKxtwpWoSdxBsdzKNECAwEAATANBgkqhkiG9w0BAQsFAAOCAQEATZH1vrb8BqkdOSpAlo+pKTop1ga7T+wVzSqP0wzJaTJuEH7dPsnoZFUzSqczCMHetd0nJOlPECxK7ELyRKJBZAg1jFvfWfOZp+f2bcGgDOp2yCkm+fvz2Elmk5PuafMKOk0kvIFUW/Fn02DJeLEfxwZPpLkncC9ub/qCAYHQHFdWqZAhVDEd5wa7LpQdS2GOgPIBv73Qxht2xNrsqz8gRhKVhsTAIQUFXUd8a+j18YtRtE0w7hq54XilKHYuZJu8GvnlRq2zuw0T/mbWI2Imt0PPT00R0ZEesv+ha01JIxlEXuCZzIjA+CZO7/ghhRThlT+hy/nduxtw2VclD0ZtFA=="
+      ],
+      "x5t": "oEHbwL2cDCYhIZxTcM-HDl6fwtA",
+      "x5t#S256": "Ed5UtMBRJIIFPQ8lkMU1mcJSDSDMcbpFgKbXSiQwzls"
+    }
+  ]
+}
+
+----
+
+[source, bash]
+----
+curl -s -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d 'client_secret=6e521ebe-e300-450f-811a-a08adc42ec4a' \
+-d 'grant_type=client_credentials' \
+-d 'client_id=backend-service' | jq
+----
+[source, json]
+----
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJlNHVGMHcxcTkxSHVtM3B1cXFsYUVFYlR3dFpwLVRnZ3JNLWE0OTVZX3pzIn0.eyJleHAiOjE2NTE3NDg1MzAsImlhdCI6MTY1MTc0ODIzMCwianRpIjoiNTUzYjkwMTYtOGVhYS00NGVhLWE1YzUtZmFlYmM1MGNjMzZmIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDkwL2F1dGgvcmVhbG1zL3RyaWtvcmFzb2x1dGlvbnMiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiN2RkNWIzODMtZDc3NS00NjdjLWE2M2ItNTU1ZDZiYjk4MmZjIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiYmFja2VuZC1zZXJ2aWNlIiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIiLCJodHRwOi8vMTkyLjE2OC4xLjI0Mzo0MjAwIiwiaHR0cDovLzEwLjQyLjAuMTo0MjAwIiwiaHR0cDovL2xvY2FsaG9zdDo0MjAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsImRlZmF1bHQtcm9sZXMtdHJpa29yYXNvbHV0aW9ucyIsInVtYV9hdXRob3JpemF0aW9uIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsicmVhbG0tbWFuYWdlbWVudCI6eyJyb2xlcyI6WyJ2aWV3LWlkZW50aXR5LXByb3ZpZGVycyIsInZpZXctcmVhbG0iLCJtYW5hZ2UtaWRlbnRpdHktcHJvdmlkZXJzIiwiaW1wZXJzb25hdGlvbiIsInJlYWxtLWFkbWluIiwiY3JlYXRlLWNsaWVudCIsIm1hbmFnZS11c2VycyIsInF1ZXJ5LXJlYWxtcyIsInZpZXctYXV0aG9yaXphdGlvbiIsInF1ZXJ5LWNsaWVudHMiLCJxdWVyeS11c2VycyIsIm1hbmFnZS1ldmVudHMiLCJtYW5hZ2UtcmVhbG0iLCJ2aWV3LWV2ZW50cyIsInZpZXctdXNlcnMiLCJ2aWV3LWNsaWVudHMiLCJtYW5hZ2UtYXV0aG9yaXphdGlvbiIsIm1hbmFnZS1jbGllbnRzIiwicXVlcnktZ3JvdXBzIl19LCJiYWNrZW5kLXNlcnZpY2UiOnsicm9sZXMiOlsidW1hX3Byb3RlY3Rpb24iXX0sImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoicHJvZmlsZSBlbWFpbCIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiY2xpZW50SG9zdCI6IjEwLjAuMi4xMDAiLCJjbGllbnRJZCI6ImJhY2tlbmQtc2VydmljZSIsInByZWZlcnJlZF91c2VybmFtZSI6InNlcnZpY2UtYWNjb3VudC1iYWNrZW5kLXNlcnZpY2UiLCJjbGllbnRBZGRyZXNzIjoiMTAuMC4yLjEwMCJ9.TBjM3pjES9EYxmEIVwYHSYkDO-mfQS-VVJ7jNsIHvfSA4w-692ZnugSnCb0Usn7BJUyPPQketboL_1Sy9BkTlbQEpRItN3H7USRqAJoao7So51SmOg7bx8uLx_wh0Ic2cBHcAPUJ47-XrXYLEa5EQ0FdumfC1tj-UmvM6HO-uqFh8EMO01hZZOmVFQfgzFI_7e_ZegzOTlbDxInlbDq_IOIieYQIBro8sarP-AXbD8jFtXmW1eJVI-fm_Zmbp5xrnubzEXf5ELOs-BbhYq0klGzFQUQ6OmBBQiY9ztoXfnS24JzDz41I3Otrq2mcWlfYbo9mZEvjfiUowVEcOwdprA",
+  "expires_in": 300,
+  "refresh_expires_in": 0,
+  "token_type": "Bearer",
+  "not-before-policy": 0,
+  "scope": "profile email"
+}
+
+----
+*GET SYSTEM ACCESS TOKEN* (it is possible to select a scope with -d param)
+[source, bash]
+----
+export TKN=$(curl -s -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d 'client_secret=6e521ebe-e300-450f-811a-a08adc42ec4a' \
+-d 'grant_type=client_credentials' \
+-d 'client_id=backend-service' | jq -r '.access_token')
+----
+
 == Common HTTP errors
 
 === 401 Unauthorized
