@@ -2,7 +2,7 @@
 
 :toc: left
 :icons: font
-:source-highlighter: rouge
+:source-highlighter: highlight.js
 :description: Keycloak example.
 :hardbreaks:
 
@@ -236,3 +236,517 @@ import ours from the command line.
 
 Other possible solution to try would be launch keycloak in version 6.0.0 with the realm and then update keycloak.
 Or using: https://www.keycloak.org/docs/latest/server_development/#_script_providers
+
+== Curl
+*GET TOKEN FROM KC*
+The token expired each 2 min aprox
+[source, shell script]
+----
+export TKN=$(curl -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d "username=pm@test" \
+-d 'password=pm@test' \
+-d 'grant_type=password' \
+-d 'client_id=admin-cli' | jq -r '.access_token')
+
+*GET LIST OF REALMS FROM KC*
+curl -s -X GET 'http://localhost:8090/auth/admin/realms' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer $TKN" | jq .
+
+[
+  {
+    "id": "trikorasolutions",
+    "realm": "trikorasolutions",
+    "notBefore": 0,
+    "defaultSignatureAlgorithm": "RS256",
+    "revokeRefreshToken": false,
+    "refreshTokenMaxReuse": 0,
+    "accessTokenLifespan": 300,
+    "accessTokenLifespanForImplicitFlow": 900,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 36000,
+    "ssoSessionIdleTimeoutRememberMe": 0,
+    "ssoSessionMaxLifespanRememberMe": 0,
+    "offlineSessionIdleTimeout": 2592000,
+    "offlineSessionMaxLifespanEnabled": false,
+    "offlineSessionMaxLifespan": 5184000,
+    "clientSessionIdleTimeout": 0,
+    "clientSessionMaxLifespan": 0,
+    "clientOfflineSessionIdleTimeout": 0,
+    "clientOfflineSessionMaxLifespan": 0,
+    "accessCodeLifespan": 60,
+    "accessCodeLifespanUserAction": 300,
+    "accessCodeLifespanLogin": 1800,
+    "actionTokenGeneratedByAdminLifespan": 43200,
+    "actionTokenGeneratedByUserLifespan": 300,
+    "oauth2DeviceCodeLifespan": 600,
+    "oauth2DevicePollingInterval": 5,
+    "enabled": true,
+    "sslRequired": "external",
+    "registrationAllowed": false,
+    "registrationEmailAsUsername": false,
+    "rememberMe": false,
+    "verifyEmail": false,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": false,
+    "editUsernameAllowed": false,
+    "bruteForceProtected": false,
+    "permanentLockout": false,
+    "maxFailureWaitSeconds": 900,
+    "minimumQuickLoginWaitSeconds": 60,
+    "waitIncrementSeconds": 60,
+    "quickLoginCheckMilliSeconds": 1000,
+    "maxDeltaTimeSeconds": 43200,
+    "failureFactor": 30,
+    "defaultRole": {
+      "id": "ea65e50f-5781-495c-8def-2ae818761aba",
+      "name": "default-roles-trikorasolutions",
+      "description": "${role_default-roles}",
+      "composite": true,
+      "clientRole": false,
+      "containerId": "trikorasolutions"
+    },
+    "requiredCredentials": [
+      "password"
+    ],
+    "otpPolicyType": "totp",
+    "otpPolicyAlgorithm": "HmacSHA1",
+    "otpPolicyInitialCounter": 0,
+    "otpPolicyDigits": 6,
+    "otpPolicyLookAheadWindow": 1,
+    "otpPolicyPeriod": 30,
+    "otpSupportedApplications": [
+      "FreeOTP",
+      "Google Authenticator"
+    ],
+    "webAuthnPolicyRpEntityName": "keycloak",
+    "webAuthnPolicySignatureAlgorithms": [
+      "ES256"
+    ],
+    "webAuthnPolicyRpId": "",
+    "webAuthnPolicyAttestationConveyancePreference": "not specified",
+    "webAuthnPolicyAuthenticatorAttachment": "not specified",
+    "webAuthnPolicyRequireResidentKey": "not specified",
+    "webAuthnPolicyUserVerificationRequirement": "not specified",
+    "webAuthnPolicyCreateTimeout": 0,
+    "webAuthnPolicyAvoidSameAuthenticatorRegister": false,
+    "webAuthnPolicyAcceptableAaguids": [],
+    "webAuthnPolicyPasswordlessRpEntityName": "keycloak",
+    "webAuthnPolicyPasswordlessSignatureAlgorithms": [
+      "ES256"
+    ],
+    "webAuthnPolicyPasswordlessRpId": "",
+    "webAuthnPolicyPasswordlessAttestationConveyancePreference": "not specified",
+    "webAuthnPolicyPasswordlessAuthenticatorAttachment": "not specified",
+    "webAuthnPolicyPasswordlessRequireResidentKey": "not specified",
+    "webAuthnPolicyPasswordlessUserVerificationRequirement": "not specified",
+    "webAuthnPolicyPasswordlessCreateTimeout": 0,
+    "webAuthnPolicyPasswordlessAvoidSameAuthenticatorRegister": false,
+    "webAuthnPolicyPasswordlessAcceptableAaguids": [],
+    "browserSecurityHeaders": {
+      "contentSecurityPolicyReportOnly": "",
+      "xContentTypeOptions": "nosniff",
+      "xRobotsTag": "none",
+      "xFrameOptions": "SAMEORIGIN",
+      "contentSecurityPolicy": "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
+      "xXSSProtection": "1; mode=block",
+      "strictTransportSecurity": "max-age=31536000; includeSubDomains"
+    },
+    "smtpServer": {},
+    "eventsEnabled": false,
+    "eventsListeners": [
+      "jboss-logging"
+    ],
+    "enabledEventTypes": [],
+    "adminEventsEnabled": false,
+    "adminEventsDetailsEnabled": false,
+    "identityProviders": [],
+    "identityProviderMappers": [],
+    "internationalizationEnabled": false,
+    "supportedLocales": [],
+    "browserFlow": "browser",
+    "registrationFlow": "registration",
+    "directGrantFlow": "direct grant",
+    "resetCredentialsFlow": "reset credentials",
+    "clientAuthenticationFlow": "clients",
+    "dockerAuthenticationFlow": "docker auth",
+    "attributes": {
+      "cibaBackchannelTokenDeliveryMode": "poll",
+      "cibaExpiresIn": "120",
+      "cibaAuthRequestedUserHint": "login_hint",
+      "oauth2DeviceCodeLifespan": "600",
+      "clientOfflineSessionMaxLifespan": "0",
+      "oauth2DevicePollingInterval": "5",
+      "clientSessionIdleTimeout": "0",
+      "userProfileEnabled": "false",
+      "clientSessionMaxLifespan": "0",
+      "parRequestUriLifespan": "60",
+      "clientOfflineSessionIdleTimeout": "0",
+      "cibaInterval": "5"
+    },
+    "userManagedAccessAllowed": true,
+    "clientProfiles": {
+      "profiles": []
+    },
+    "clientPolicies": {
+      "policies": []
+    }
+  }
+]
+----
+
+*GET ROLE INFO*
+[source, shell script]
+----
+curl -s -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/roles/project_manager' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+{
+  "id": "bdac009e-d4d3-41be-825f-23bded18c65c",
+  "name": "project_manager",
+  "description": "Project Manager",
+  "composite": false,
+  "clientRole": false,
+  "containerId": "trikorasolutions",
+  "attributes": {}
+}
+----
+
+*GET USERS WITH ROLE*
+[source, shell script]
+----
+curl -s -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/roles/hr/users' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+[
+  {
+    "id": "bf3e264c-ec53-461c-ab90-e9a5c9a45bb1",
+    "createdTimestamp": 1635501809038,
+    "username": "tenant_admin_test",
+    "enabled": true,
+    "totp": false,
+    "emailVerified": false,
+    "firstName": "Test Tenant",
+    "lastName": "Tenant Administrator",
+    "email": "tenant_admin_test@trikorasolutions.com",
+    "disableableCredentialTypes": [],
+    "requiredActions": [],
+    "notBefore": 0
+  }
+]
+----
+
+*GET GROUPS WITH ROLE*
+[source,bash]
+----
+$ curl -s -X GET \
+  'http://localhost:8090/auth/admin/realms/trikorasolutions/roles/project_manager/groups' \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer ${TKN}" | jq .
+----
+
+[source,json]
+----
+[
+  {
+    "id": "1445ea0b-8ad7-4259-b2e5-effbfb2905bc",
+    "name": "Project Manager",
+    "path": "/Project Manager"
+  }
+]
+----
+
+
+*GET ASSIGNED ROLES OF ONE USER*
+[source, shell script]
+----
+curl -s -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/users/ca399bfe-2e43-4891-9fef-cec854ec29fa/role-mappings/realm' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+[
+  {
+    "id": "ea65e50f-5781-495c-8def-2ae818761aba",
+    "name": "default-roles-trikorasolutions",
+    "description": "${role_default-roles}",
+    "composite": true,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  }
+]
+----
+
+*GET EFFECTIVE ROLES OF ONE USER*
+[source, shell script]
+----
+curl -s -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/users/ca399bfe-2e43-4891-9fef-cec854ec29fa/role-mappings/realm/composite' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+[
+  {
+    "id": "f7276140-abe0-4374-8e5e-1808b1053491",
+    "name": "uma_authorization",
+    "description": "${role_uma_authorization}",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "66e8cfbf-a28a-4034-a228-549ba14a5b92",
+    "name": "offline_access",
+    "description": "${role_offline-access}",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "e1f8a8b8-180f-41df-bffe-23fa24322928",
+    "name": "tenant_administrator",
+    "description": "Tenant Administrator",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "d8feee60-a667-41ef-b892-5eea894a611c",
+    "name": "user",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "5e09c398-7675-4876-8b4b-a426c0477b6d",
+    "name": "space_manager",
+    "description": "Space Manager",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "c8b91fde-84c5-43ac-b178-866e41623776",
+    "name": "asset_mgr",
+    "description": "Asset Manager",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "ea65e50f-5781-495c-8def-2ae818761aba",
+    "name": "default-roles-trikorasolutions",
+    "description": "${role_default-roles}",
+    "composite": true,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "cb7ef5d2-060e-4efb-b203-7c9700312a26",
+    "name": "application_user",
+    "description": "User of the Trikora Workplace Manager application",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "970e4b22-23fb-4d01-904f-4b1be26f4e9e",
+    "name": "hr",
+    "description": "Human Resources",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "bdac009e-d4d3-41be-825f-23bded18c65c",
+    "name": "project_manager",
+    "description": "Project Manager",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  }
+]
+----
+
+*GET ASSIGNED ROLES OF ONE GROUP*
+[source, shell script]
+----
+curl -s -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/groups/1445ea0b-8ad7-4259-b2e5-effbfb2905bc/role-mappings/realm' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+[
+  {
+    "id": "cb7ef5d2-060e-4efb-b203-7c9700312a26",
+    "name": "application_user",
+    "description": "User of the Trikora Workplace Manager application",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "bdac009e-d4d3-41be-825f-23bded18c65c",
+    "name": "project_manager",
+    "description": "Project Manager",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  }
+]
+----
+
+*GET EFFECTIVE ROLES OF ONE GROUP*
+[source, shell script]
+----
+curl -s -X GET \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/groups/1445ea0b-8ad7-4259-b2e5-effbfb2905bc/role-mappings/realm/composite' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+[
+  {
+    "id": "cb7ef5d2-060e-4efb-b203-7c9700312a26",
+    "name": "application_user",
+    "description": "User of the Trikora Workplace Manager application",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  },
+  {
+    "id": "bdac009e-d4d3-41be-825f-23bded18c65c",
+    "name": "project_manager",
+    "description": "Project Manager",
+    "composite": false,
+    "clientRole": false,
+    "containerId": "trikorasolutions"
+  }
+]
+----
+
+*GET USER BY ID*
+[source, shell script]
+----
+curl -s -X GET 'http://localhost:8090/auth/admin/realms/trikorasolutions/users/ca399bfe-2e43-4891-9fef-cec854ec29fa' \
+-H "Accept: application/json" \
+-H "Authorization: Bearer ${TKN}" | jq .
+
+{
+  "id": "ca399bfe-2e43-4891-9fef-cec854ec29fa",
+  "createdTimestamp": 1648203035796,
+  "username": "pm@test",
+  "enabled": true,
+  "totp": false,
+  "emailVerified": false,
+  "firstName": "PM",
+  "lastName": "Test",
+  "email": "pm@test",
+  "disableableCredentialTypes": [],
+  "requiredActions": [],
+  "notBefore": 0,
+  "access": {
+    "manageGroupMembership": true,
+    "view": true,
+    "mapRoles": true,
+    "impersonate": true,
+    "manage": true
+  }
+}
+----
+
+== Tokens
+(example with different credential types)
+https://www.appsdeveloperblog.com/oauth-2-implicit-grant-type-flow-example/
+
+Get what you need using sed (in this examples we are using the jq formatter, but it requires installation):
+[source, bash]
+----
+TOKEN=`echo $RESULT | sed 's/.*access_token":"//g' | sed 's/".*//g'`
+----
+*SEE KEYCLOAK KEYS*
+[source, bash]
+----
+curl -s -L -X GET 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/certs' | jq
+----
+[source, json]
+----
+{
+  "keys": [
+    {
+      "kid": "JyXI9mk21U9-dtqOMiizpcx1CXBi2mdxVCMwVAWgtQI",
+      "kty": "RSA",
+      "alg": "RS256",
+      "use": "enc",
+      "n": "jTDua4sKrcLXuNGa9Z3a4hJz4r8Cf07bU_6DTsqVO9mSouUNYNAsZZtaa9Ih5LEudX_vdzhP8yxjm45IDKFBymSJWczh9jNRZryz7bfM4XBnr2keFTqS1ACJSs7C4d-DdNkt5X3C6rjdf-Sxvk7i9m1KGCUV1NGsgQxakdZ_c_qi9VTDGgVXVTx6mr59OMBKvH3JJtkxT4iF0LT9JHu9XhEgWPWJS44o4appDKth9Yo5pDdk7QFB9KB_SFqmTYbQZfyLJsZ_k4mAp83y524jM0TM7HTR7BfxlchbYnTyesSb16FTW2jIMlzI0QGzMQzEiUYg2oKHpOX2w-skSQmqVw",
+      "e": "AQAB",
+      "x5c": [
+        "MIICrzCCAZcCBgF8MUXExTANBgkqhkiG9w0BAQsFADAbMRkwFwYDVQQDDBB0cmlrb3Jhc29sdXRpb25zMB4XDTIxMDkyOTExMTUyOFoXDTMxMDkyOTExMTcwOFowGzEZMBcGA1UEAwwQdHJpa29yYXNvbHV0aW9uczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAI0w7muLCq3C17jRmvWd2uISc+K/An9O21P+g07KlTvZkqLlDWDQLGWbWmvSIeSxLnV/73c4T/MsY5uOSAyhQcpkiVnM4fYzUWa8s+23zOFwZ69pHhU6ktQAiUrOwuHfg3TZLeV9wuq43X/ksb5O4vZtShglFdTRrIEMWpHWf3P6ovVUwxoFV1U8epq+fTjASrx9ySbZMU+IhdC0/SR7vV4RIFj1iUuOKOGqaQyrYfWKOaQ3ZO0BQfSgf0hapk2G0GX8iybGf5OJgKfN8uduIzNEzOx00ewX8ZXIW2J08nrEm9ehU1toyDJcyNEBszEMxIlGINqCh6Tl9sPrJEkJqlcCAwEAATANBgkqhkiG9w0BAQsFAAOCAQEAZcZQUbP1aFyn6+sj3FiVXu61OQyZ0D+xKMpFs2H3NnciAhbR54TKcuLLkpbjgkKnXJfKvnpeAVJsy03LJ/jjm8y9RJ5nau8tTIN4u9gdnt1EuCnlsuixuTPcHSG/0VOm3hLbTgMBHHR9Z+AwEpd02e/TeKufsZhKwq5zdQ83U2xfnSzKiPNSMPx3KFVwQ1hgye5aPFsqjrVeQ2mPb5lTiOsa9XWjBms4iNS0QVr3DL3SPW2U7CsuL+N+HdtQInz+liPGh+wxJI4SS0hJLWiXnM4/Z6jBB8k2UZOglM6qVmGvXiSHY5dXME7tt8kyZ7goXnVnI0mfsiy5vhAwCVDr7g=="
+      ],
+      "x5t": "QyVQnp3rRR2dz5xd7-gdkuz5yus",
+      "x5t#S256": "QOoAblPMbWed-kgrPQ0HF7eOuq9C_P2M8z_aMALeQ40"
+    },
+    {
+      "kid": "e4uF0w1q91Hum3puqqlaEEbTwtZp-TggrM-a495Y_zs",
+      "kty": "RSA",
+      "alg": "RS256",
+      "use": "sig",
+      "n": "m6l-JuPQa39k9t2Of4VVkm-ZdKp9bBdO-eMtDDq1lZ6euyZ0fyxopQDiOYfmwYCW7HINFC6k7sBRI_XIU37OVMjwhdLmcDcLiMECTk104DQzC-DLXzdnllHlj_wHOHcE-bQIK1upUmrTWNd7-A9OLCF-Izc7bW3QG3BqZ5N_wUaI6MWTcEEvSCvrGEcK17Idt_sQkIHzdVA2lgQjlPJCalS-zaSLbXcKqV04CDBdDAfbznkHcdAzVzAabi0nkj--sO9YyIKtP72jEEOeRGk0sRWPhS8n5u9JpO23uRyfGv8V0XPOlZH1F7zL2B_V5mpXDnTl4rG3ClahJ3EGx3Mo0Q",
+      "e": "AQAB",
+      "x5c": [
+        "MIICrzCCAZcCBgF8MUXENzANBgkqhkiG9w0BAQsFADAbMRkwFwYDVQQDDBB0cmlrb3Jhc29sdXRpb25zMB4XDTIxMDkyOTExMTUyOFoXDTMxMDkyOTExMTcwOFowGzEZMBcGA1UEAwwQdHJpa29yYXNvbHV0aW9uczCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAJupfibj0Gt/ZPbdjn+FVZJvmXSqfWwXTvnjLQw6tZWenrsmdH8saKUA4jmH5sGAluxyDRQupO7AUSP1yFN+zlTI8IXS5nA3C4jBAk5NdOA0Mwvgy183Z5ZR5Y/8Bzh3BPm0CCtbqVJq01jXe/gPTiwhfiM3O21t0BtwameTf8FGiOjFk3BBL0gr6xhHCteyHbf7EJCB83VQNpYEI5TyQmpUvs2ki213CqldOAgwXQwH2855B3HQM1cwGm4tJ5I/vrDvWMiCrT+9oxBDnkRpNLEVj4UvJ+bvSaTtt7kcnxr/FdFzzpWR9Re8y9gf1eZqVw505eKxtwpWoSdxBsdzKNECAwEAATANBgkqhkiG9w0BAQsFAAOCAQEATZH1vrb8BqkdOSpAlo+pKTop1ga7T+wVzSqP0wzJaTJuEH7dPsnoZFUzSqczCMHetd0nJOlPECxK7ELyRKJBZAg1jFvfWfOZp+f2bcGgDOp2yCkm+fvz2Elmk5PuafMKOk0kvIFUW/Fn02DJeLEfxwZPpLkncC9ub/qCAYHQHFdWqZAhVDEd5wa7LpQdS2GOgPIBv73Qxht2xNrsqz8gRhKVhsTAIQUFXUd8a+j18YtRtE0w7hq54XilKHYuZJu8GvnlRq2zuw0T/mbWI2Imt0PPT00R0ZEesv+ha01JIxlEXuCZzIjA+CZO7/ghhRThlT+hy/nduxtw2VclD0ZtFA=="
+      ],
+      "x5t": "oEHbwL2cDCYhIZxTcM-HDl6fwtA",
+      "x5t#S256": "Ed5UtMBRJIIFPQ8lkMU1mcJSDSDMcbpFgKbXSiQwzls"
+    }
+  ]
+}
+
+----
+
+[source, bash]
+----
+curl -s -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d 'client_secret=6e521ebe-e300-450f-811a-a08adc42ec4a' \
+-d 'grant_type=client_credentials' \
+-d 'client_id=backend-service' | jq
+----
+[source, json]
+----
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJlNHVGMHcxcTkxSHVtM3B1cXFsYUVFYlR3dFpwLVRnZ3JNLWE0OTVZX3pzIn0.eyJleHAiOjE2NTE3NDg1MzAsImlhdCI6MTY1MTc0ODIzMCwianRpIjoiNTUzYjkwMTYtOGVhYS00NGVhLWE1YzUtZmFlYmM1MGNjMzZmIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDkwL2F1dGgvcmVhbG1zL3RyaWtvcmFzb2x1dGlvbnMiLCJhdWQiOlsicmVhbG0tbWFuYWdlbWVudCIsImFjY291bnQiXSwic3ViIjoiN2RkNWIzODMtZDc3NS00NjdjLWE2M2ItNTU1ZDZiYjk4MmZjIiwidHlwIjoiQmVhcmVyIiwiYXpwIjoiYmFja2VuZC1zZXJ2aWNlIiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIiLCJodHRwOi8vMTkyLjE2OC4xLjI0Mzo0MjAwIiwiaHR0cDovLzEwLjQyLjAuMTo0MjAwIiwiaHR0cDovL2xvY2FsaG9zdDo0MjAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsImRlZmF1bHQtcm9sZXMtdHJpa29yYXNvbHV0aW9ucyIsInVtYV9hdXRob3JpemF0aW9uIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsicmVhbG0tbWFuYWdlbWVudCI6eyJyb2xlcyI6WyJ2aWV3LWlkZW50aXR5LXByb3ZpZGVycyIsInZpZXctcmVhbG0iLCJtYW5hZ2UtaWRlbnRpdHktcHJvdmlkZXJzIiwiaW1wZXJzb25hdGlvbiIsInJlYWxtLWFkbWluIiwiY3JlYXRlLWNsaWVudCIsIm1hbmFnZS11c2VycyIsInF1ZXJ5LXJlYWxtcyIsInZpZXctYXV0aG9yaXphdGlvbiIsInF1ZXJ5LWNsaWVudHMiLCJxdWVyeS11c2VycyIsIm1hbmFnZS1ldmVudHMiLCJtYW5hZ2UtcmVhbG0iLCJ2aWV3LWV2ZW50cyIsInZpZXctdXNlcnMiLCJ2aWV3LWNsaWVudHMiLCJtYW5hZ2UtYXV0aG9yaXphdGlvbiIsIm1hbmFnZS1jbGllbnRzIiwicXVlcnktZ3JvdXBzIl19LCJiYWNrZW5kLXNlcnZpY2UiOnsicm9sZXMiOlsidW1hX3Byb3RlY3Rpb24iXX0sImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoicHJvZmlsZSBlbWFpbCIsImVtYWlsX3ZlcmlmaWVkIjpmYWxzZSwiY2xpZW50SG9zdCI6IjEwLjAuMi4xMDAiLCJjbGllbnRJZCI6ImJhY2tlbmQtc2VydmljZSIsInByZWZlcnJlZF91c2VybmFtZSI6InNlcnZpY2UtYWNjb3VudC1iYWNrZW5kLXNlcnZpY2UiLCJjbGllbnRBZGRyZXNzIjoiMTAuMC4yLjEwMCJ9.TBjM3pjES9EYxmEIVwYHSYkDO-mfQS-VVJ7jNsIHvfSA4w-692ZnugSnCb0Usn7BJUyPPQketboL_1Sy9BkTlbQEpRItN3H7USRqAJoao7So51SmOg7bx8uLx_wh0Ic2cBHcAPUJ47-XrXYLEa5EQ0FdumfC1tj-UmvM6HO-uqFh8EMO01hZZOmVFQfgzFI_7e_ZegzOTlbDxInlbDq_IOIieYQIBro8sarP-AXbD8jFtXmW1eJVI-fm_Zmbp5xrnubzEXf5ELOs-BbhYq0klGzFQUQ6OmBBQiY9ztoXfnS24JzDz41I3Otrq2mcWlfYbo9mZEvjfiUowVEcOwdprA",
+  "expires_in": 300,
+  "refresh_expires_in": 0,
+  "token_type": "Bearer",
+  "not-before-policy": 0,
+  "scope": "profile email"
+}
+
+----
+*GET SYSTEM ACCESS TOKEN* (it is possible to select a scope with -d param)
+[source, bash]
+----
+export TKN=$(curl -s -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
+-H "Content-Type: application/x-www-form-urlencoded" \
+-d 'client_secret=6e521ebe-e300-450f-811a-a08adc42ec4a' \
+-d 'grant_type=client_credentials' \
+-d 'client_id=backend-service' | jq -r '.access_token')
+----
+
+== Common HTTP errors
+
+=== 401 Unauthorized
+This error means that the token that you are providing to Keycloak has expired or is invalid,
+you can decode your token in the jwt web page: https://jwt.io/
+
+=== 403 Forbidden
+The token is fine, but the user has not permissions to get that resource from keycloak.
+Try with other user or promote the current user.
+
+

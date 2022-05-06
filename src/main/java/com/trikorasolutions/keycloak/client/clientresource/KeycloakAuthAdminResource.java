@@ -3,7 +3,6 @@ package com.trikorasolutions.keycloak.client.clientresource;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
-
 import javax.json.JsonArray;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -33,13 +32,13 @@ public interface KeycloakAuthAdminResource {
   @Path("/realms/{realm}/users")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> createUser(@HeaderParam("Authorization") String bearerToken,
-                            @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                            @QueryParam("client_id") String clientId, UserRepresentation body);
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, UserRepresentation body);
 
   /**
    * Updated a user in Keycloak.
    *
-   * @param id Id of the user that is going to be updated.
+   * @param id   Id of the user that is going to be updated.
    * @param body Raw string containing the new user data in the UserRepresentation format.
    * @return A UserRepresentation of the updated user.
    */
@@ -47,9 +46,9 @@ public interface KeycloakAuthAdminResource {
   @Path("/realms/{realm}/users/{id}")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> updateUser(@HeaderParam("Authorization") String bearerToken,
-                            @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                            @QueryParam("client_id") String clientId, @PathParam("id") String id,
-                            UserRepresentation body);
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id,
+      UserRepresentation body);
 
   /**
    * Return the UserRepresentation of one user queried by his username.
@@ -65,8 +64,8 @@ public interface KeycloakAuthAdminResource {
   @Path("/realms/{realm}/users")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getUserInfo(@HeaderParam("Authorization") String bearerToken,
-                             @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                             @QueryParam("client_id") String clientId, @QueryParam("username") String username);
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @QueryParam("username") String username);
 
   /**
    * Deletes a user from the Keycloak database.
@@ -78,8 +77,8 @@ public interface KeycloakAuthAdminResource {
   @Path("/realms/{realm}/users/{id}")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> deleteUser(@HeaderParam("Authorization") String bearerToken,
-                            @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                            @QueryParam("client_id") String clientId, @PathParam("id") String id);
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id);
 
   /**
    * This method return a list with all the user in the client provided as argument
@@ -89,9 +88,21 @@ public interface KeycloakAuthAdminResource {
   @GET
   @Path("/realms/{realm}/users")
   @Produces(MediaType.APPLICATION_JSON)
-  Uni<JsonArray> listAll(@HeaderParam("Authorization") String bearerToken,
-                         @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                         @QueryParam("client_id") String clientId);
+  Uni<JsonArray> listAllUsers(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId);
+
+  /**
+   * This method return a list with all the groups in the client provided as argument
+   *
+   * @return a JsonArray of Keycloak GroupRepresentations.
+   */
+  @GET
+  @Path("/realms/{realm}/groups")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> listAllGroups(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId);
 
   /**
    * Return information of one group.
@@ -103,8 +114,8 @@ public interface KeycloakAuthAdminResource {
   @Path("/realms/{realm}/groups")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getGroupInfo(@HeaderParam("Authorization") String bearerToken,
-                              @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                              @QueryParam("client_id") String clientId, @QueryParam("search") String groupName);
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @QueryParam("search") String groupName);
 
   /**
    * Gets all the users that belongs to a concrete group.
@@ -116,13 +127,13 @@ public interface KeycloakAuthAdminResource {
   @Path("/realms/{realm}/groups/{id}/members")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getGroupUsers(@HeaderParam("Authorization") String bearerToken,
-                               @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                               @QueryParam("client_id") String clientId, @PathParam("id") String id);
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id);
 
   /**
    * Add a user to a group.
    *
-   * @param id id of the user that is going to be added.
+   * @param id      id of the user that is going to be added.
    * @param groupId id of the group where the user will belong to.
    * @return an empty JsonArray.
    */
@@ -130,14 +141,14 @@ public interface KeycloakAuthAdminResource {
   @Path("/realms/{realm}/users/{id}/groups/{groupId}")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> putUserInGroup(@HeaderParam("Authorization") String bearerToken,
-                                @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                                @QueryParam("client_id") String clientId, @PathParam("id") String id,
-                                @PathParam("groupId") String groupId);
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id,
+      @PathParam("groupId") String groupId);
 
   /**
    * Removes a user from a group.
    *
-   * @param id id of the user that is going to be removed.
+   * @param id      id of the user that is going to be removed.
    * @param groupId id of the group.
    * @return an empty JsonArray.
    */
@@ -145,8 +156,55 @@ public interface KeycloakAuthAdminResource {
   @Path("/realms/{realm}/users/{id}/groups/{groupId}")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> deleteUserFromGroup(@HeaderParam("Authorization") String bearerToken,
-                                     @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-                                     @QueryParam("client_id") String clientId, @PathParam("id") String id,
-                                     @PathParam("groupId") String groupId);
-}
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id,
+      @PathParam("groupId") String groupId);
 
+  /**
+   * Return the users which have ASSIGNED the given role
+   * @param roleName role name
+   * @return JsonArray with all the users
+   */
+  @GET
+  @Path("/realms/{realm}/roles/{role-name}/users")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getAllUsersInRole(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("role-name") String roleName);
+
+  /**
+   * Return the groups which have ASSIGNED the given role
+   * @param roleName role name
+   * @return JsonArray with all the groups
+   */
+  @GET
+  @Path("/realms/{realm}/roles/{role-name}/groups")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getAllGroupsInRole(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("role-name") String roleName);
+
+  /**
+   * Return ALL the roles of one user
+   * @param userId id of the user to be queried
+   * @return JsonArray with the roles
+   */
+  @GET
+  @Path("/realms/{realm}/users/{id}/role-mappings/realm/composite")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getUserRoles(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String userId);
+
+  /**
+   * Return ALL the roles of one group
+   * @param groupId id of the user to be queried
+   * @return JsonArray with the roles
+   */
+  @GET
+  @Path("/realms/{realm}/groups/{id}/role-mappings/realm/composite")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getGroupRoles(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String groupId);
+}

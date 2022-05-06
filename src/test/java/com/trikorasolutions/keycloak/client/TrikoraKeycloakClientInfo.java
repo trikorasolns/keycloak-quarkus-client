@@ -10,12 +10,14 @@ import org.slf4j.LoggerFactory;
 import javax.enterprise.context.ApplicationScoped;
 
 /**
- * These variables regarding the "backend-service" client belongs to a testing example project,
- * do not copy your client secret in production.
+ * These variables regarding the "backend-service" client belongs to a testing example project, do
+ * not copy your client secret in production.
  */
 @ApplicationScoped
 public class TrikoraKeycloakClientInfo {
-  private  final Logger LOGGER = LoggerFactory.getLogger(TrikoraKeycloakClientInfo.class);
+
+  public static String ADM = "pm@test";
+  private final Logger LOGGER = LoggerFactory.getLogger(TrikoraKeycloakClientInfo.class);
 
   @ConfigProperty(name = "quarkus.oidc.credentials.secret")
   protected String clientSecret;
@@ -23,27 +25,49 @@ public class TrikoraKeycloakClientInfo {
   @ConfigProperty(name = "quarkus.oidc.client-id")
   protected String clientId;
 
+  @ConfigProperty(name = "quarkus.oidc.client.backend-service")
+  protected String backendId;
+
   @ConfigProperty(name = "quarkus.oidc.auth-server-url")
   protected String clientServerUrl;
 
   @ConfigProperty(name = "trikora.realm-name")
   protected String realmName;
 
-  public  String getAccessToken(String userName) {
+  public String getAccessToken(String userName) {
     RestAssured.defaultParser = Parser.JSON;
-    return RestAssured.given().param("grant_type", "password").param("username", userName).param("password", userName)
-      .param("client_id", clientId).param("client_secret", clientSecret).when()
-      .post(clientServerUrl + "/protocol/openid-connect/token").as(AccessTokenResponse.class).getToken();
+    return RestAssured.given()
+        .param("grant_type", "password")
+        .param("username", userName)
+        .param("password", userName)
+        .param("client_id", clientId)
+        .param("client_secret", clientSecret)
+        .when()
+        .post(clientServerUrl + "/protocol/openid-connect/token").as(AccessTokenResponse.class)
+        .getToken();
   }
 
   public String getClientSecret() {
     return clientSecret;
   }
-  public String getClientId() {return clientId;}
+
+  public String getClientId() {
+    return clientId;
+  }
+
   public String getClientServerUrl() {
     return clientServerUrl;
   }
+
   public String getRealmName() {
     return realmName;
+  }
+
+  public String getBackendId() {
+    return backendId;
+  }
+
+  public void setBackendId(String backendId) {
+    this.backendId = backendId;
   }
 }

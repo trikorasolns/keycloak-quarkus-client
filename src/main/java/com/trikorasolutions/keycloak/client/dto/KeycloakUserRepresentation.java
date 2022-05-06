@@ -2,15 +2,20 @@ package com.trikorasolutions.keycloak.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.jose4j.json.internal.json_simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.json.JsonArray;
 import javax.json.JsonObject;
+import javax.json.JsonValue;
+import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 /**
  * This is a Download DTO, that is, it shows only the desired fields when they are requested to KC
@@ -63,11 +68,15 @@ public class KeycloakUserRepresentation {
   @JsonProperty("credentials")
   public Set<UserDtoCredential> credentials;
 
+  @JsonProperty("roles")
+  public Set<RoleRepresentation> roles;
+
   public KeycloakUserRepresentation() {
   }
 
   public KeycloakUserRepresentation(String username) {
     this.username = username;
+    this.roles = new LinkedHashSet<>();
   }
 
   public KeycloakUserRepresentation(String id, String firstName, String lastName, String email,
@@ -79,6 +88,7 @@ public class KeycloakUserRepresentation {
     this.enabled = enabled;
     this.username = username;
     this.credentials = Set.of(this.new UserDtoCredential(username));
+    this.roles = new LinkedHashSet<>();
   }
 
   @Override
@@ -91,7 +101,23 @@ public class KeycloakUserRepresentation {
         .add("enabled=" + enabled)
         .add("username='" + username + "'")
         .add("credentials=" + credentials)
+        .add("roles=" + roles)
         .toString();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o)
+      return true;
+    if (!(o instanceof KeycloakUserRepresentation))
+      return false;
+    KeycloakUserRepresentation that = (KeycloakUserRepresentation) o;
+    return id.equals(that.id);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(id);
   }
 
   public static KeycloakUserRepresentation from(JsonObject from) {
@@ -133,6 +159,12 @@ public class KeycloakUserRepresentation {
     //If null then set to false (uses short circuit)
     parsedResponse.enabled = parsedResponse.enabled != null && parsedResponse.enabled;
     return parsedResponse;
+  }
+
+  public static List<KeycloakUserRepresentation> allFrom(JsonArray from) {
+    return from.stream().map(JsonValue::asJsonObject)
+        .map(KeycloakUserRepresentation::from)
+        .collect(Collectors.toList());
   }
 
 
@@ -190,6 +222,18 @@ public class KeycloakUserRepresentation {
 
   public void setCredentials(Set<UserDtoCredential> credentials) {
     this.credentials = credentials;
+  }
+
+  public Set<RoleRepresentation> getRoles() {
+    return roles;
+  }
+
+  public void setRoles(Set<RoleRepresentation> roles) {
+    this.roles = roles;
+  }
+  public KeycloakUserRepresentation addRoles(Collection<RoleRepresentation> roles) {
+    this.roles.addAll(roles);
+    return this;
   }
 
   /**
