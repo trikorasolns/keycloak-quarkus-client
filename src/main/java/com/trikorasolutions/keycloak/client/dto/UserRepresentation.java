@@ -4,20 +4,24 @@ package com.trikorasolutions.keycloak.client.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Set;
+import java.util.StringJoiner;
+
 /**
- * This is an Upload DTO, that is, it packs all the necessary information for uploading it to KC.
- * It is important to realize that KC has it own UserRepresentation, so it is necessary to parse
- * this class before uploading.
- *
- * This class is much more short than the KC UserRepresentation, that is why we are using it on those
- * first versions of our client.
+ * This is an Upload DTO, that is, it packs all the necessary information for uploading it to KC. It
+ * is important to realize that KC has it own UserRepresentation, so it is necessary to parse this
+ * class before uploading.
+ * <p>
+ * This class is much more short than the KC UserRepresentation, that is why we are using it on
+ * those first versions of our client.
  */
 public class UserRepresentation {
+
   /**
-   * In this first version of the example, the credential of the users are
-   * their usernames. This feature will be enhanced in future releases.
+   * In this first version of the example, the credential of the users are their usernames. This
+   * feature will be enhanced in future releases.
    */
   public class UserDtoCredential {
+
     @JsonProperty("type")
     public String type;
 
@@ -27,7 +31,7 @@ public class UserRepresentation {
     @JsonProperty("temporary")
     public Boolean temporary;
 
-    public UserDtoCredential(String name){
+    public UserDtoCredential(String name) {
       this.value = name;
       this.type = "password";
       this.temporary = false;
@@ -52,12 +56,78 @@ public class UserRepresentation {
   @JsonProperty("credentials")
   public Set<UserDtoCredential> credentials;
 
-  public UserRepresentation(String firstName, String lastName, String email, Boolean enabled, String username) {
+  public UserRepresentation(String firstName, String lastName, String email, Boolean enabled,
+      String username) {
     this.firstName = firstName;
     this.lastName = lastName;
     this.email = email;
     this.enabled = enabled;
     this.username = username;
     this.credentials = Set.of(this.new UserDtoCredential(username));
+  }
+
+  public static UserRepresentation from(KeycloakUserRepresentation r) {
+    return new UserRepresentation(r.firstName, r.lastName, r.email, r.enabled, r.username);
+  }
+
+  public String getFirstName() {
+    return firstName;
+  }
+
+  public void setFirstName(String firstName) {
+    this.firstName = firstName;
+  }
+
+  public String getLastName() {
+    return lastName;
+  }
+
+  public void setLastName(String lastName) {
+    this.lastName = lastName;
+  }
+
+  public String getEmail() {
+    return email;
+  }
+
+  public void setEmail(String email) {
+    this.email = email;
+  }
+
+  public Boolean getEnabled() {
+    return enabled;
+  }
+
+  public UserRepresentation setEnabled(Boolean enabled) {
+    this.enabled = enabled;
+    return this;
+  }
+
+  public String getUsername() {
+    return username;
+  }
+
+  public void setUsername(String username) {
+    this.username = username;
+  }
+
+  public Set<UserDtoCredential> getCredentials() {
+    return credentials;
+  }
+
+  public void setCredentials(Set<UserDtoCredential> credentials) {
+    this.credentials = credentials;
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", UserRepresentation.class.getSimpleName() + "[", "]")
+        .add("firstName='" + firstName + "'")
+        .add("lastName='" + lastName + "'")
+        .add("email='" + email + "'")
+        .add("enabled=" + enabled)
+        .add("username='" + username + "'")
+        .add("credentials=" + credentials)
+        .toString();
   }
 }

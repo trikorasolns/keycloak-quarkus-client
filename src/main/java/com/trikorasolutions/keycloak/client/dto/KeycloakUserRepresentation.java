@@ -71,12 +71,16 @@ public class KeycloakUserRepresentation {
   @JsonProperty("roles")
   public Set<RoleRepresentation> roles;
 
+  @JsonProperty("groups")
+  public Set<GroupRepresentation> groups;
+
   public KeycloakUserRepresentation() {
   }
 
   public KeycloakUserRepresentation(String username) {
     this.username = username;
     this.roles = new LinkedHashSet<>();
+    this.groups = new LinkedHashSet<>();
   }
 
   public KeycloakUserRepresentation(String id, String firstName, String lastName, String email,
@@ -89,6 +93,7 @@ public class KeycloakUserRepresentation {
     this.username = username;
     this.credentials = Set.of(this.new UserDtoCredential(username));
     this.roles = new LinkedHashSet<>();
+    this.groups = new LinkedHashSet<>();
   }
 
   @Override
@@ -102,6 +107,7 @@ public class KeycloakUserRepresentation {
         .add("username='" + username + "'")
         .add("credentials=" + credentials)
         .add("roles=" + roles)
+        .add("groups=" + groups)
         .toString();
   }
 
@@ -231,8 +237,22 @@ public class KeycloakUserRepresentation {
   public void setRoles(Set<RoleRepresentation> roles) {
     this.roles = roles;
   }
+
+  public Set<GroupRepresentation> getGroups() {
+    return groups;
+  }
+
+  public void setGroups(Set<GroupRepresentation> groups) {
+    this.groups = groups;
+  }
+
   public KeycloakUserRepresentation addRoles(Collection<RoleRepresentation> roles) {
     this.roles.addAll(roles);
+    return this;
+  }
+
+  public KeycloakUserRepresentation addGroups(Collection<GroupRepresentation> groups) {
+    this.groups.addAll(groups);
     return this;
   }
 

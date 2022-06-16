@@ -131,6 +131,19 @@ public interface KeycloakAuthAdminResource {
       @QueryParam("client_id") String clientId, @PathParam("id") String id);
 
   /**
+   * Return all the groups of a given user.
+   *
+   * @param id      id of the user that is going to be added.
+   * @return an empty JsonArray.
+   */
+  @GET
+  @Path("/realms/{realm}/users/{id}/groups")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getUserGroups(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id);
+
+  /**
    * Add a user to a group.
    *
    * @param id      id of the user that is going to be added.

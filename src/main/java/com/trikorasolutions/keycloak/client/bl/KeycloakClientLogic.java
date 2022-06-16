@@ -10,7 +10,6 @@ import com.trikorasolutions.keycloak.client.exception.*;
 import io.restassured.RestAssured;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.groups.UniJoin.Builder;
-import io.smallrye.mutiny.tuples.Tuple2;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.keycloak.representations.AccessTokenResponse;
@@ -48,19 +47,17 @@ public class KeycloakClientLogic {
   @RestClient
   KeycloakAuthorizationResource keycloakUserClient;
 
-
+  /******************************* SYSTEM FUNCTIONS *******************************/
   public Uni<String> getTokenForUser(final String realm, final String keycloakClientId,
       final String secret) {
-    LOGGER.warn("Getting token with params:\n"
-        + "realm:{},\n"
-        + "client_id:{}\n"
-        + "secrect:{}", realm, keycloakClientId, secret);
+    LOGGER.info("Getting token with params [realm: {}, client_id: {}]", realm, keycloakClientId);
     String tok = RestAssured.given()
         .param("grant_type", "client_credentials")
         .param("client_id", keycloakClientId)
         .param("client_secret", secret)
         .when()
-        .post("http://localhost:8090/auth/realms/trikorasolutions" + "/protocol/openid-connect/token")
+        .post(
+            "http://localhost:8090/auth/realms/trikorasolutions" + "/protocol/openid-connect/token")
         .as(AccessTokenResponse.class)
         .getToken();
     return Uni.createFrom().item(tok);
@@ -73,6 +70,8 @@ public class KeycloakClientLogic {
 //        .transform(obj -> obj.getString("access_token"));
   }
 
+  /******************************* USER FUNCTIONS *******************************/
+
   /**
    * Creates a new user in the Keycloak database. It can throw DuplicatedUserException,
    * InvalidTokenException, ClientNotFoundException or ArgumentsFormatException exceptions.
@@ -82,19 +81,21 @@ public class KeycloakClientLogic {
    */
   public Uni<KeycloakUserRepresentation> createUser(final String realm, final String token,
       final String keycloakClientId, final UserRepresentation newUser) {
+    LOGGER.debug("#createUser(UserRepresentation)...: {}", newUser);
     return keycloakClient.createUser(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
-        newUser).onFailure(ClientWebApplicationException.class).transform(ex -> {
-      if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
-        return new DuplicatedUserException(newUser.username);
-      } else if (ex.getMessage().contains(String.valueOf(UNAUTHORIZED.getStatusCode()))) {
-        return new InvalidTokenException();
-      } else if (ex.getMessage().contains(String.valueOf(NOT_FOUND.getStatusCode()))) {
-        return new ClientNotFoundException(keycloakClientId, realm);
-      } else {
-        return new ArgumentsFormatException(
-            "The user representation provided to Keycloak is incorrect");
-      }
-    }).replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
+            newUser)
+        .onFailure(ClientWebApplicationException.class).transform(ex -> {
+          if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
+            return new DuplicatedUserException(newUser.username);
+          } else if (ex.getMessage().contains(String.valueOf(UNAUTHORIZED.getStatusCode()))) {
+            return new InvalidTokenException();
+          } else if (ex.getMessage().contains(String.valueOf(NOT_FOUND.getStatusCode()))) {
+            return new ClientNotFoundException(keycloakClientId, realm);
+          } else {
+            return new ArgumentsFormatException(
+                "The user representation provided to Keycloak is incorrect");
+          }
+        }).replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
   }
 
   /**
@@ -106,11 +107,39 @@ public class KeycloakClientLogic {
    */
   public Uni<KeycloakUserRepresentation> updateUser(final String realm, final String token,
       final String keycloakClientId, final String userName, final UserRepresentation newUser) {
-    return this.getUserInfo(realm, token, keycloakClientId, userName)
-        .map(userInfo -> userInfo.id).call(
-            userId -> keycloakClient.updateUser(BEARER + token, realm, GRANT_TYPE,
-                keycloakClientId, userId, newUser))
+    return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+        .map(KeycloakUserRepresentation::getId)
+        .call(userId -> keycloakClient.updateUser(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, userId, newUser))
         .replaceWith(this.getUserInfo(realm, token, keycloakClientId, newUser.username));
+  }
+
+  /**
+   * Enables a user in the keycloak DB.
+   *
+   * @return true is the user is enable
+   */
+  public Uni<Boolean> enableUser(final String realm, final String token,
+      final String keycloakClientId, final String userName) {
+    return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+        .call(user -> keycloakClient.updateUser(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, user.id, UserRepresentation.from(user).setEnabled(true)))
+        .replaceWith(this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+            .map(user -> user.enabled));
+  }
+
+  /**
+   * Disables a user in the keycloak DB.
+   *
+   * @return true is the user is disable
+   */
+  public Uni<Boolean> disableUser(final String realm, final String token,
+      final String keycloakClientId, final String userName) {
+    return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+        .call(user -> keycloakClient.updateUser(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, user.id, UserRepresentation.from(user).setEnabled(false)))
+        .replaceWith(this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+            .map(user -> !user.enabled));
   }
 
   /**
@@ -122,15 +151,21 @@ public class KeycloakClientLogic {
    */
   public Uni<KeycloakUserRepresentation> getUserInfo(final String realm, final String token,
       final String keycloakClientId, final String userName) {
+    LOGGER.debug("#getUserInfo(String)...{}", userName);
 
+    return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+        .flatMap(user -> this.getUserRolesById(realm, token, keycloakClientId, user.id)
+            .map(user::addRoles))   // Enrich with roles
+        .flatMap(user -> this.getGroupsForUser(realm, token, keycloakClientId, user.id)
+            .map(user::addGroups)); // Enrich with groups
+  }
+  public Uni<KeycloakUserRepresentation> getUserInfoNoEnrich(final String realm, final String token,
+      final String keycloakClientId, final String userName) {
     return keycloakClient.getUserInfo(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
             userName)
         .map(jsonArray -> (jsonArray.size() != 1) ? null : jsonArray.get(0).asJsonObject())
         .onItem().ifNull().failWith(() -> new NoSuchUserException(userName)).onItem().ifNotNull()
-        .transform(KeycloakUserRepresentation::from)
-        .flatMap(user -> this.getUserRolesById(realm, token, keycloakClientId, user.id)
-            .map(user::addRoles)
-        );
+        .transform(KeycloakUserRepresentation::from);
   }
 
   /**
@@ -141,9 +176,11 @@ public class KeycloakClientLogic {
    */
   public Uni<Boolean> deleteUser(final String realm, final String token,
       final String keycloakClientId, final String userName) {
-    return this.getUserInfo(realm, token, keycloakClientId, userName)
+    LOGGER.debug("#deleteUser(String)...{}", userName);
+    return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
         .call(user -> keycloakClient.deleteUser(BEARER + token, realm, GRANT_TYPE,
-            keycloakClientId, user.id)).map(x -> Boolean.TRUE);
+            keycloakClientId, user.id))
+        .map(x -> Boolean.TRUE);
   }
 
   /**
@@ -157,6 +194,19 @@ public class KeycloakClientLogic {
         .map(KeycloakUserRepresentation::allFrom);
   }
 
+  /**
+   * This method return a list with all the groups for the given user
+   *
+   * @return a JsonArray of Keycloak UserRepresentations.
+   */
+  public Uni<List<GroupRepresentation>> getGroupsForUser(final String realm, final String token,
+      final String keycloakClientId, final String userId) {
+    return keycloakClient.getUserGroups(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, userId)
+        .map(GroupRepresentation::allFrom);
+  }
+
+  /******************************* GROUP FUNCTIONS *******************************/
   /**
    * This method return a list with all the groups in the client provided as argument
    *
@@ -176,14 +226,20 @@ public class KeycloakClientLogic {
    */
   public Uni<GroupRepresentation> getGroupInfo(final String realm, final String token,
       final String keycloakClientId, final String groupName) {
+    return getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+        .flatMap(group -> this.getGroupRolesById(realm, token, keycloakClientId, group.id)
+            .map(group::addRoles))
+        .flatMap(group -> this.getUsersForGroupById(realm, token, keycloakClientId, group.id)
+            .map(group::addMembers)
+        );
+  }
+  public Uni<GroupRepresentation> getGroupInfoNoEnrich(final String realm, final String token,
+      final String keycloakClientId, final String groupName) {
     return keycloakClient.getGroupInfo(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
             groupName)
         .map(jsonArray -> (jsonArray.size() != 1) ? null : jsonArray.get(0).asJsonObject())
         .onItem().ifNull().failWith(() -> new NoSuchGroupException(groupName))
-        .map(GroupRepresentation::from)
-        .flatMap(group -> this.getGroupRolesById(realm, token, keycloakClientId, group.id)
-            .map(group::addRoles)
-        );
+        .map(GroupRepresentation::from);
   }
 
   /**
@@ -194,13 +250,66 @@ public class KeycloakClientLogic {
    */
   public Uni<List<KeycloakUserRepresentation>> getUsersForGroup(final String realm,
       final String token, final String keycloakClientId, final String groupName) {
-    return this.getGroupInfo(realm, token, keycloakClientId, groupName)
+    return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
         .map(GroupRepresentation::getId)
         .flatMap(userId -> keycloakClient.getGroupUsers(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, userId))
         .map(KeycloakUserRepresentation::allFrom);
   }
 
+  private Uni<List<KeycloakUserRepresentation>> getUsersForGroupById(final String realm,
+      final String token, final String keycloakClientId, final String id) {
+    return keycloakClient.getGroupUsers(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, id)
+        .map(KeycloakUserRepresentation::allFrom);
+  }
+
+  /**
+   * Add a user to a group. It can throw NoSuchGroupException or NoSuchUserException exceptions.
+   *
+   * @param userName  name of the user that is going to be added.
+   * @param groupName name of the group where the user will belong to.
+   * @return a UserRepresentation of the user that has been added to the group.
+   */
+  public Uni<KeycloakUserRepresentation> putUserInGroup(final String realm, final String token,
+      final String keycloakClientId, final String userName, final String groupName) {
+
+    Uni<String> userId = this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+        .map(KeycloakUserRepresentation::getId);
+
+    Uni<String> groupId = this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+        .map(GroupRepresentation::getId);
+
+    return Uni.combine().all().unis(userId, groupId).asTuple().flatMap(tuple2 ->
+            keycloakClient.putUserInGroup(BEARER + token, realm, GRANT_TYPE,
+                keycloakClientId, tuple2.getItem1(), tuple2.getItem2()))
+
+        .flatMap(x -> this.getUserInfo(realm, token, keycloakClientId, userName));
+  }
+
+  /**
+   * Removes a user from a group. It can throw NoSuchGroupException or NoSuchUserException
+   * exceptions.
+   *
+   * @param userName  name of the user that is going to be removed.
+   * @param groupName name of the group.
+   * @return a UserRepresentation of the user that has been kicked from the group.
+   */
+  public Uni<KeycloakUserRepresentation> deleteUserFromGroup(final String realm, final String token,
+      final String keycloakClientId, final String userName, final String groupName) {
+    Uni<String> userId = this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+        .map(KeycloakUserRepresentation::getId);
+
+    Uni<String> groupId = this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+        .map(GroupRepresentation::getId);
+
+    return Uni.combine().all().unis(userId, groupId).asTuple().flatMap(tuple2 ->
+            keycloakClient.deleteUserFromGroup(BEARER + token, realm, GRANT_TYPE,
+                keycloakClientId, tuple2.getItem1(), tuple2.getItem2()))
+        .replaceWith(this.getUserInfo(realm, token, keycloakClientId, userName));
+  }
+
+  /******************************* ROLE FUNCTIONS *******************************/
   /**
    * Return a List of RoleRepresentation with all the roles to the User.
    *
@@ -209,7 +318,7 @@ public class KeycloakClientLogic {
    */
   public Uni<List<RoleRepresentation>> getUserRoles(final String realm, final String token,
       final String keycloakClientId, final String userName) {
-    return this.getUserInfo(realm, token, keycloakClientId, userName)
+    return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
         .map(userInfo -> userInfo.id)
         .flatMap(userId -> keycloakClient.getUserRoles(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, userId))
@@ -238,7 +347,7 @@ public class KeycloakClientLogic {
    */
   public Uni<List<RoleRepresentation>> getGroupRoles(final String realm, final String token,
       final String keycloakClientId, final String userName) {
-    return this.getGroupInfo(realm, token, keycloakClientId, userName)
+    return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, userName)
         .map(GroupRepresentation::getId)
         .flatMap(id -> keycloakClient.getGroupRoles(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, id))
@@ -257,55 +366,6 @@ public class KeycloakClientLogic {
     return keycloakClient.getGroupRoles(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, id)
         .map(RoleRepresentation::allFrom);
-  }
-
-  /**
-   * Add a user to a group. It can throw NoSuchGroupException or NoSuchUserException exceptions.
-   *
-   * @param userName  name of the user that is going to be added.
-   * @param groupName name of the group where the user will belong to.
-   * @return a UserRepresentation of the user that has been added to the group.
-   */
-  public Uni<KeycloakUserRepresentation> putUserInGroup(final String realm, final String token,
-      final String keycloakClientId, final String userName, final String groupName) {
-    Uni<String> userId = this.getUserInfo(realm, token, keycloakClientId, userName)
-        .map(KeycloakUserRepresentation::getId);
-
-    Uni<String> groupId = this.getGroupInfo(realm, token, keycloakClientId, groupName)
-        .map(GroupRepresentation::getId);
-
-    Uni<Tuple2<String, String>> combinedUniTuple = Uni.combine().all().unis(userId, groupId)
-        .asTuple();
-
-    return combinedUniTuple.flatMap(
-            tuple2 -> keycloakClient.putUserInGroup(BEARER + token, realm, GRANT_TYPE,
-                keycloakClientId, tuple2.getItem1(), tuple2.getItem2()))
-        .replaceWith(this.getUserInfo(realm, token, keycloakClientId, userName));
-  }
-
-  /**
-   * Removes a user from a group. It can throw NoSuchGroupException or NoSuchUserException
-   * exceptions.
-   *
-   * @param userName  name of the user that is going to be removed.
-   * @param groupName name of the group.
-   * @return a UserRepresentation of the user that has been kicked from the group.
-   */
-  public Uni<KeycloakUserRepresentation> deleteUserFromGroup(final String realm, final String token,
-      final String keycloakClientId, final String userName, final String groupName) {
-    Uni<String> userId = this.getUserInfo(realm, token, keycloakClientId, userName).onItem()
-        .transform(userInfo -> userInfo.id);
-
-    Uni<String> groupId = this.getGroupInfo(realm, token, keycloakClientId, groupName)
-        .map(GroupRepresentation::getId);
-
-    Uni<Tuple2<String, String>> combinedUniTuple = Uni.combine().all().unis(userId, groupId)
-        .asTuple();
-
-    return combinedUniTuple.flatMap(
-            tuple2 -> keycloakClient.deleteUserFromGroup(BEARER + token, realm, GRANT_TYPE,
-                keycloakClientId, tuple2.getItem1(), tuple2.getItem2()))
-        .replaceWith(this.getUserInfo(realm, token, keycloakClientId, userName));
   }
 
   /**

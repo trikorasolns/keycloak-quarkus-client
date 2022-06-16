@@ -26,9 +26,13 @@ public class GroupRepresentation {
   @JsonProperty("roles")
   public Set<RoleRepresentation> roles;
 
+  @JsonProperty("members")
+  public Set<KeycloakUserRepresentation> members;
+
   public GroupRepresentation(String id) {
     this.id = id;
     this.roles = new LinkedHashSet<>();
+    this.members = new LinkedHashSet<>();
   }
 
   public GroupRepresentation(String id, String name, String path) {
@@ -36,6 +40,7 @@ public class GroupRepresentation {
     this.name = name;
     this.path = path;
     this.roles = new LinkedHashSet<>();
+    this.members = new LinkedHashSet<>();
   }
 
   public static GroupRepresentation from(JsonObject from) {
@@ -110,6 +115,19 @@ public class GroupRepresentation {
     return this;
   }
 
+  public Set<KeycloakUserRepresentation> getMembers() {
+    return members;
+  }
+
+  public void setMembers(Set<KeycloakUserRepresentation> members) {
+    this.members = members;
+  }
+
+  public GroupRepresentation addMembers(Collection<KeycloakUserRepresentation> members) {
+    this.members.addAll(members);
+    return this;
+  }
+
   @Override
   public String toString() {
     return new StringJoiner(", ", GroupRepresentation.class.getSimpleName() + "[", "]")
@@ -117,6 +135,7 @@ public class GroupRepresentation {
         .add("name='" + name + "'")
         .add("path='" + path + "'")
         .add("roles=" + roles)
+        .add("members=" + members)
         .toString();
   }
 

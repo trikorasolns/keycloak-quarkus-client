@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -42,10 +41,9 @@ public class LogicCRUDTest {
         .indefinitely(); // Delete the test user
 
     logicResponse = keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(),
-        newUser).await().indefinitely(); // Create new user
-    assertThat(logicResponse.email, is("mrrectangule@trikorasolutions.com"));
+        tkrKcCli.getClientId(), newUser).await().indefinitely();// Create new user
 
+    assertThat(logicResponse.email, is("mrrectangule@trikorasolutions.com"));
   }
 
   @Test
@@ -192,6 +190,8 @@ public class LogicCRUDTest {
         tkrKcCli.getClientId(),
         newUser.username).await().indefinitely(); // Gets the user info
 
+    LOGGER.info("GET USER INFO: {}", logicResponse);
+
     assertThat(logicResponse.firstName, is(newUser.firstName));
     assertThat(logicResponse.lastName, is(newUser.lastName));
     assertThat(logicResponse.email, is(newUser.email));
@@ -313,5 +313,32 @@ public class LogicCRUDTest {
         .map(tuple -> tuple.username).collect(Collectors.toList());
 
     assertThat(usernameList, hasItems("jdoe", ADM, "mrsquare", "mrtriangle"));
+  }
+
+  @Test
+  public void testEnableDisableUser() {
+    String accessToken = tkrKcCli.getAccessToken(ADM);
+    UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
+        "mrrectangule@trikorasolutions.com", false,
+        "mrrectangule");
+    KeycloakUserRepresentation logicResponse;
+    boolean logicResponse2;
+    // Creates the user
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+            newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await()
+        .indefinitely(); // Delete the test user
+    logicResponse = keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newUser).await().indefinitely();
+    assertThat(logicResponse.email, is("mrrectangule@trikorasolutions.com"));
+
+    // Enable the user
+    logicResponse2 = keycloakClientLogic.enableUser(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newUser.username).await().indefinitely();
+    assertThat(logicResponse2, is(true));
+
+    // Disable the user
+    logicResponse2 = keycloakClientLogic.disableUser(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newUser.username).await().indefinitely();
+    assertThat(logicResponse2, is(true));
   }
 }
