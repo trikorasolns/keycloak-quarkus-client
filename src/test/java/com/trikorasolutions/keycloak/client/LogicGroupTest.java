@@ -4,15 +4,12 @@ import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
 import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
-import com.trikorasolutions.keycloak.client.exception.NoSuchUserException;
 import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import javax.json.JsonArray;
-import javax.json.JsonObject;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -41,6 +38,7 @@ public class LogicGroupTest {
       "TENANT_TEST").await().indefinitely();
 
     assertThat(logicResponse.getName(), is("TENANT_TEST"));
+    LOGGER.info("test{}",logicResponse);
   }
 
   @Test
@@ -84,7 +82,11 @@ public class LogicGroupTest {
     // Put a new user in the group
     logicResponse = keycloakClientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
       "mrsquare", "TENANT_TEST").await().indefinitely();
+
     assertThat(logicResponse.username, is("mrsquare"));
+    assertThat(logicResponse.groups.stream()
+        .map(GroupRepresentation::getName)
+        .collect(Collectors.toList()), hasItem("TENANT_TEST"));
 
     // Check if the change has been persisted in keycloak
     logicResponse2 = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -109,4 +111,5 @@ public class LogicGroupTest {
     assertThat(userRepresentation.size(), greaterThanOrEqualTo(0));
     assertThat(userRepresentation, not(hasItem("mrsquare")));
   }
+
 }

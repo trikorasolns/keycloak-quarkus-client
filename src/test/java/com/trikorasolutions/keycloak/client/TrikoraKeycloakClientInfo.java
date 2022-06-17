@@ -47,6 +47,19 @@ public class TrikoraKeycloakClientInfo {
         .getToken();
   }
 
+  public String getAccessToken(String userName, String password) {
+    RestAssured.defaultParser = Parser.JSON;
+    return RestAssured.given()
+        .param("grant_type", "password")
+        .param("username", userName)
+        .param("password", password)
+        .param("client_id", clientId)
+        .param("client_secret", clientSecret)
+        .when()
+        .post(clientServerUrl + "/protocol/openid-connect/token").as(AccessTokenResponse.class)
+        .getToken();
+  }
+
   public String getClientSecret() {
     return clientSecret;
   }
