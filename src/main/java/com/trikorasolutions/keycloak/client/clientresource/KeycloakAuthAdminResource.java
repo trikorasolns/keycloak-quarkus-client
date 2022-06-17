@@ -1,6 +1,7 @@
 package com.trikorasolutions.keycloak.client.clientresource;
 
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
+import com.trikorasolutions.keycloak.client.dto.UserRepresentation.UserDtoCredential;
 import io.smallrye.mutiny.Uni;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import javax.json.JsonArray;
@@ -10,7 +11,7 @@ import javax.ws.rs.core.MediaType;
 /**
  * Common arguments to all the methods:
  * <ul>
- * <li> bearerToken access token provided by the  keycloak SecurityIdentity.
+ * <li> bearerToken access token provided by the keycloak SecurityIdentity.
  * <li> realm the realm name in which the users are going to be queried.
  * <li> grantType kind of authentication method.
  * <li> clientId id of the client (service name).
@@ -49,6 +50,21 @@ public interface KeycloakAuthAdminResource {
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId, @PathParam("id") String id,
       UserRepresentation body);
+
+  /**
+   * Updated a user password in Keycloak.
+   *
+   * @param id   Id of the user that is going to be updated.
+   * @param body Raw string containing the new user password in the CredentialRepresentation format.
+   * @return -.
+   */
+  @PUT
+  @Path("/realms/{realm}/users/{id}/reset-password")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> resetPassword(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id,
+      UserDtoCredential body);
 
   /**
    * Return the UserRepresentation of one user queried by his username.
@@ -90,7 +106,8 @@ public interface KeycloakAuthAdminResource {
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> listAllUsers(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId);
+      @QueryParam("client_id") String clientId, @QueryParam("first") Integer first,
+      @QueryParam("max") Integer max);
 
   /**
    * This method return a list with all the groups in the client provided as argument
@@ -133,7 +150,7 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return all the groups of a given user.
    *
-   * @param id      id of the user that is going to be added.
+   * @param id id of the user that is going to be added.
    * @return an empty JsonArray.
    */
   @GET
@@ -175,6 +192,7 @@ public interface KeycloakAuthAdminResource {
 
   /**
    * Return the users which have ASSIGNED the given role
+   *
    * @param roleName role name
    * @return JsonArray with all the users
    */
@@ -187,6 +205,7 @@ public interface KeycloakAuthAdminResource {
 
   /**
    * Return the groups which have ASSIGNED the given role
+   *
    * @param roleName role name
    * @return JsonArray with all the groups
    */
@@ -199,6 +218,7 @@ public interface KeycloakAuthAdminResource {
 
   /**
    * Return ALL the roles of one user
+   *
    * @param userId id of the user to be queried
    * @return JsonArray with the roles
    */
@@ -211,6 +231,7 @@ public interface KeycloakAuthAdminResource {
 
   /**
    * Return ALL the roles of one group
+   *
    * @param groupId id of the user to be queried
    * @return JsonArray with the roles
    */

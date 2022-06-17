@@ -33,7 +33,7 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
     KeycloakUserRepresentation logicResponse;
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -51,7 +51,7 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
             newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await()
@@ -79,7 +79,7 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
             newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await()
@@ -103,7 +103,7 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
             newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await()
@@ -149,7 +149,7 @@ public class LogicCRUDTest {
   public void testCreateWithOutEmailOk() {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle", null, true,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
     KeycloakUserRepresentation logicResponse;
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -176,7 +176,7 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
     KeycloakUserRepresentation logicResponse;
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -223,10 +223,10 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
     UserRepresentation updatedUser = new UserRepresentation("mr", "rectangle",
         "updatedemail@trikorasolutions.com",
-        true, "mrrectangule");
+        true, "mrrectangule", "mrrectangule");
     KeycloakUserRepresentation logicResponse;
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -267,7 +267,7 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
     Boolean logicResponse;
 
     keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -313,6 +313,7 @@ public class LogicCRUDTest {
         .map(tuple -> tuple.username).collect(Collectors.toList());
 
     assertThat(usernameList, hasItems("jdoe", ADM, "mrsquare", "mrtriangle"));
+    LOGGER.info("TOTAL USERS IN REALM LIST: {}", logicResponse.size());
   }
 
   @Test
@@ -320,7 +321,7 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", false,
-        "mrrectangule");
+        "mrrectangule", "mrrectangule");
     KeycloakUserRepresentation logicResponse;
     boolean logicResponse2;
     // Creates the user
@@ -336,9 +337,37 @@ public class LogicCRUDTest {
         tkrKcCli.getClientId(), newUser.username).await().indefinitely();
     assertThat(logicResponse2, is(true));
 
+    logicResponse = keycloakClientLogic.getUserInfo(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(),
+        newUser.username).await().indefinitely(); // Gets the user info
+
+    LOGGER.info("GET USER INFO: {}", logicResponse);
+
     // Disable the user
     logicResponse2 = keycloakClientLogic.disableUser(tkrKcCli.getRealmName(), accessToken,
         tkrKcCli.getClientId(), newUser.username).await().indefinitely();
     assertThat(logicResponse2, is(true));
   }
+
+  @Test
+  public void testChangeUserPassword() {
+    String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    UserRepresentation newUser = new UserRepresentation("kcpss", "kcpsslast",
+        "kcpsslast@trikorasolutions.com", true,
+        "kcpss", "kcpss");
+    KeycloakUserRepresentation logicResponse;
+    // Creates the user
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+            newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await()
+        .indefinitely(); // Delete the test user
+    logicResponse = keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newUser).await().indefinitely();
+    assertThat(logicResponse.email, is("kcpsslast@trikorasolutions.com"));
+
+    logicResponse = keycloakClientLogic.resetPassword(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newUser.username, "1234isPerfectPassword").await().indefinitely();
+    assertThat(logicResponse.email, is("kcpsslast@trikorasolutions.com"));
+
+  }
+
 }

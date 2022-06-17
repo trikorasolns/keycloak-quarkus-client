@@ -2,6 +2,7 @@ package com.trikorasolutions.keycloak.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.trikorasolutions.keycloak.client.dto.UserRepresentation.UserDtoCredential;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,28 +26,6 @@ public class KeycloakUserRepresentation {
   @JsonIgnore
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakUserRepresentation.class);
 
-  /**
-   * In this first version of the example, the credential of the users are their usernames. This
-   * feature will be enhanced in future releases.
-   */
-  public class UserDtoCredential {
-
-    @JsonProperty("type")
-    public String type;
-
-    @JsonProperty("value")
-    public String value;
-
-    @JsonProperty("temporary")
-    public Boolean temporary;
-
-    public UserDtoCredential(String name) {
-      this.value = name;
-      this.type = "password";
-      this.temporary = false;
-    }
-  }
-
   @JsonProperty("id")
   public String id;
 
@@ -64,9 +43,6 @@ public class KeycloakUserRepresentation {
 
   @JsonProperty("username")
   public String username;
-
-  @JsonProperty("credentials")
-  public Set<UserDtoCredential> credentials;
 
   @JsonProperty("roles")
   public Set<RoleRepresentation> roles;
@@ -91,7 +67,6 @@ public class KeycloakUserRepresentation {
     this.email = email;
     this.enabled = enabled;
     this.username = username;
-    this.credentials = Set.of(this.new UserDtoCredential(username));
     this.roles = new LinkedHashSet<>();
     this.groups = new LinkedHashSet<>();
   }
@@ -105,7 +80,6 @@ public class KeycloakUserRepresentation {
         .add("email='" + email + "'")
         .add("enabled=" + enabled)
         .add("username='" + username + "'")
-        .add("credentials=" + credentials)
         .add("roles=" + roles)
         .add("groups=" + groups)
         .toString();
@@ -220,14 +194,6 @@ public class KeycloakUserRepresentation {
 
   public void setUsername(String username) {
     this.username = username;
-  }
-
-  public Set<UserDtoCredential> getCredentials() {
-    return credentials;
-  }
-
-  public void setCredentials(Set<UserDtoCredential> credentials) {
-    this.credentials = credentials;
   }
 
   public Set<RoleRepresentation> getRoles() {

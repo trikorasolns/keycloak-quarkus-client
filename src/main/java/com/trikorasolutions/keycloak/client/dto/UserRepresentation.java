@@ -1,8 +1,13 @@
 package com.trikorasolutions.keycloak.client.dto;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import javax.json.JsonObject;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -16,11 +21,14 @@ import java.util.StringJoiner;
  */
 public class UserRepresentation {
 
+  @JsonIgnore
+  private static final Logger LOGGER = LoggerFactory.getLogger(UserRepresentation.class);
+
   /**
    * In this first version of the example, the credential of the users are their usernames. This
    * feature will be enhanced in future releases.
    */
-  public class UserDtoCredential {
+  public static class UserDtoCredential {
 
     @JsonProperty("type")
     public String type;
@@ -31,8 +39,8 @@ public class UserRepresentation {
     @JsonProperty("temporary")
     public Boolean temporary;
 
-    public UserDtoCredential(String name) {
-      this.value = name;
+    public UserDtoCredential(final String value) {
+      this.value = value;
       this.type = "password";
       this.temporary = false;
     }
@@ -56,18 +64,33 @@ public class UserRepresentation {
   @JsonProperty("credentials")
   public Set<UserDtoCredential> credentials;
 
-  public UserRepresentation(String firstName, String lastName, String email, Boolean enabled,
-      String username) {
+  public UserRepresentation(final String firstName, final String lastName, final String email,
+      final Boolean enabled,
+      final String username, final String password) {
     this.firstName = firstName;
     this.lastName = lastName;
     this.email = email;
     this.enabled = enabled;
     this.username = username;
-    this.credentials = Set.of(this.new UserDtoCredential(username));
+    this.credentials = Set.of(new UserDtoCredential(password));
+  }
+
+  public UserRepresentation(final String firstName, final String lastName, final String email,
+      final Boolean enabled, final String username) {
+    this.firstName = firstName;
+    this.lastName = lastName;
+    this.email = email;
+    this.enabled = enabled;
+    this.username = username;
+    this.credentials = null;
   }
 
   public static UserRepresentation from(KeycloakUserRepresentation r) {
     return new UserRepresentation(r.firstName, r.lastName, r.email, r.enabled, r.username);
+  }
+
+  public static UserDtoCredential credentialsFrom(final String password){
+    return new UserDtoCredential(password);
   }
 
   public String getFirstName() {
@@ -117,6 +140,10 @@ public class UserRepresentation {
 
   public void setCredentials(Set<UserDtoCredential> credentials) {
     this.credentials = credentials;
+  }
+
+  public void setPassword(final String password) {
+    this.credentials = Set.of(new UserDtoCredential(password));
   }
 
   @Override
