@@ -346,8 +346,7 @@ public class KeycloakClientLogic {
     return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
         .map(GroupRepresentation::getId)
         .flatMap(groupId -> this.getGroupMembersRec(realm, token, keycloakClientId, groupId, 0,
-            bufferSize, new ArrayList<>(), (max < 0) ? Integer.MAX_VALUE : max))
-        .invoke(x->LOGGER.info("#getGroupMembers()...{}",x.size()));
+            bufferSize, new ArrayList<>(), (max < 0) ? Integer.MAX_VALUE : max));
 
   }
 
