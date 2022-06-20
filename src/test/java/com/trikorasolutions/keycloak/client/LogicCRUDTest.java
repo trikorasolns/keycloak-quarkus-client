@@ -306,7 +306,7 @@ public class LogicCRUDTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
 
     List<KeycloakUserRepresentation> logicResponse = keycloakClientLogic.listAllUsers(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId())
+            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), 100,-1)
         .await().indefinitely();
 
     List<String> usernameList = logicResponse.stream()

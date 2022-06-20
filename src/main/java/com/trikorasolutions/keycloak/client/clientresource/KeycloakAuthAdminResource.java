@@ -145,7 +145,8 @@ public interface KeycloakAuthAdminResource {
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getGroupUsers(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @PathParam("id") String id);
+      @QueryParam("client_id") String clientId, @PathParam("id") String id,
+      @QueryParam("first") Integer first, @QueryParam("max") Integer max);
 
   /**
    * Return all the groups of a given user.
