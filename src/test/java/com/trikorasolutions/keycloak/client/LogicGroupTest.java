@@ -8,6 +8,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import javax.inject.Inject;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -63,8 +64,7 @@ public class LogicGroupTest {
     List<KeycloakUserRepresentation> logicResponse;
 
     logicResponse = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(),
-        "TENANT_TEST", 100, -1).await().indefinitely();
+        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
 
     List<String> userRepresentation = logicResponse.stream()
         .map(user -> user.username)
@@ -91,8 +91,7 @@ public class LogicGroupTest {
 
     // Check if the change has been persisted in keycloak
     logicResponse2 = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(),
-        "TENANT_TEST", 3, -1).await().indefinitely();
+        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
     List<String> userRepresentation = logicResponse2.stream()
         .map(user -> user.username)
         .collect(Collectors.toList());
@@ -107,8 +106,7 @@ public class LogicGroupTest {
 
     // Check if the change has been persisted in keycloak
     logicResponse2 = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(),
-        "TENANT_TEST", 100, -1).await().indefinitely();
+        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
     userRepresentation = logicResponse2.stream()
         .map(user -> user.username)
         .collect(Collectors.toList());
