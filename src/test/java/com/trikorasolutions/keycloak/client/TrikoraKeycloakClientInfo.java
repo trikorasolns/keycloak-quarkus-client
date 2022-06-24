@@ -31,7 +31,7 @@ public class TrikoraKeycloakClientInfo {
   @ConfigProperty(name = "quarkus.oidc.auth-server-url")
   protected String clientServerUrl;
 
-  @ConfigProperty(name = "trikora.realm-name")
+  @ConfigProperty(name = "trikora.keycloak.realm-name")
   protected String realmName;
 
   public String getAccessToken(String userName) {

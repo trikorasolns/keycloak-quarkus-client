@@ -1,12 +1,23 @@
 package com.trikorasolutions.keycloak.client.clientresource;
 
+import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
+import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation.UserDtoCredential;
 import io.smallrye.mutiny.Uni;
-import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import javax.json.JsonArray;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 
 /**
  * Common arguments to all the methods:
@@ -55,7 +66,8 @@ public interface KeycloakAuthAdminResource {
    * Updated a user password in Keycloak.
    *
    * @param id   Id of the user that is going to be updated.
-   * @param body Raw string containing the new user password in the CredentialRepresentation format.
+   * @param body Raw string containing the new user password in the CredentialRepresentation
+   *             format.
    * @return -.
    */
   @PUT
@@ -122,6 +134,20 @@ public interface KeycloakAuthAdminResource {
       @QueryParam("client_id") String clientId);
 
   /**
+   * This will update the group and set the parent if it exists. Create it and set the parent if the
+   * group doesn't exist.
+   *
+   * @param group that is going to be created in the Keycloak database.
+   * @return a GroupRepresentation of the new group.
+   */
+  @POST
+  @Path("/realms/{realm}/groups")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> createGroup(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, String group);
+
+  /**
    * Return information of one group.
    *
    * @param groupName name of the group that is going to be queried in the Keycloak database.
@@ -134,6 +160,20 @@ public interface KeycloakAuthAdminResource {
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId, @QueryParam("search") String groupName);
 
+
+  /**
+   * This method deletes a group.
+   *
+   * @param id that is going to be deleted from the Keycloak database.
+   * @return -
+   */
+  @DELETE
+  @Path("/realms/{realm}/groups/{id}")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> deleteGroup(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id);
+
   /**
    * Gets all the users that belongs to a concrete group.
    *
@@ -145,7 +185,8 @@ public interface KeycloakAuthAdminResource {
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getGroupUsers(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @PathParam("id") String id);
+      @QueryParam("client_id") String clientId, @PathParam("id") String id,
+      @QueryParam("first") Integer first, @QueryParam("max") Integer max);
 
   /**
    * Return all the groups of a given user.
@@ -230,6 +271,38 @@ public interface KeycloakAuthAdminResource {
       @QueryParam("client_id") String clientId, @PathParam("id") String userId);
 
   /**
+   * Add the given role mappings to a group
+   *
+   * @param groupId id of the group to be upgraded.
+   * @param roles   array containing the roles to be added, both id and name of the roles need to be
+   *                provided.
+   * @return JsonArray with the roles
+   */
+  @POST
+  @Path("/realms/{realm}/groups/{id}/role-mappings/realm")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> addRolesToGroup(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String groupId,
+      RoleRepresentation[] roles);
+
+  /**
+   * Remove the given role mappings from a group
+   *
+   * @param groupId id of the group to be upgraded.
+   * @param roles   array containing the roles to be added, both id and name of the roles need to be
+   *                provided.
+   * @return JsonArray with the roles
+   */
+  @DELETE
+  @Path("/realms/{realm}/groups/{id}/role-mappings/realm")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> removeRolesFromGroup(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String groupId,
+      RoleRepresentation[] roles);
+
+  /**
    * Return ALL the roles of one group
    *
    * @param groupId id of the user to be queried
@@ -241,4 +314,6 @@ public interface KeycloakAuthAdminResource {
   Uni<JsonArray> getGroupRoles(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId, @PathParam("id") String groupId);
+
+
 }

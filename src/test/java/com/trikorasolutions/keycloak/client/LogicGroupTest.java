@@ -10,17 +10,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @QuarkusTest
 public class LogicGroupTest {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(LogicGroupTest.class);
 
   @Inject
@@ -29,16 +29,36 @@ public class LogicGroupTest {
   @Inject
   TrikoraKeycloakClientInfo tkrKcCli;
 
+
+  @Test
+  public void testCreateGroupOk() {
+    String accessToken = tkrKcCli.getAccessToken(ADM);
+    GroupRepresentation newGroup = new GroupRepresentation("TEST_CREATE");
+    LOGGER.info("test{}", newGroup);
+    GroupRepresentation logicResponse;
+    boolean logicResponse2;
+
+    logicResponse = keycloakClientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newGroup).await().indefinitely();
+    assertThat(logicResponse.getName(), is(newGroup.name));
+
+    logicResponse2= keycloakClientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), logicResponse.name).await().indefinitely();
+    assertThat(logicResponse2, is(true));
+
+  }
+
   @Test
   public void testGroupInfoOk() {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     GroupRepresentation logicResponse;
 
-    logicResponse = keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "TENANT_TEST").await().indefinitely();
+    logicResponse = keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(),
+        "TENANT_TEST").await().indefinitely();
 
     assertThat(logicResponse.getName(), is("TENANT_TEST"));
-    LOGGER.info("test{}",logicResponse);
+    LOGGER.info("test{}", logicResponse);
   }
 
   @Test
@@ -47,11 +67,10 @@ public class LogicGroupTest {
 
     try {
       keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "unknown").onFailure(NoSuchGroupException.class).transform(x -> {
+          "unknown").onFailure(NoSuchGroupException.class).transform(x -> {
         throw (NoSuchGroupException) x;
       }).await().indefinitely();
-
-    assertTrue(false);
+      fail();
     } catch (NoSuchGroupException ex) {
       assertThat(ex.getClass(), is(NoSuchGroupException.class));
       assertThat(ex.getMessage(), containsString("unknown"));
@@ -63,12 +82,12 @@ public class LogicGroupTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     List<KeycloakUserRepresentation> logicResponse;
 
-    logicResponse = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "TENANT_TEST").await().indefinitely();
+    logicResponse = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
 
     List<String> userRepresentation = logicResponse.stream()
-      .map(user -> user.username)
-      .collect(Collectors.toList());
+        .map(user -> user.username)
+        .collect(Collectors.toList());
     assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
     assertThat(userRepresentation, hasItem(ADM));
   }
@@ -80,8 +99,9 @@ public class LogicGroupTest {
     List<KeycloakUserRepresentation> logicResponse2;
 
     // Put a new user in the group
-    logicResponse = keycloakClientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "mrsquare", "TENANT_TEST").await().indefinitely();
+    logicResponse = keycloakClientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(),
+        "mrsquare", "TENANT_TEST").await().indefinitely();
 
     assertThat(logicResponse.username, is("mrsquare"));
     assertThat(logicResponse.groups.stream()
@@ -89,25 +109,26 @@ public class LogicGroupTest {
         .collect(Collectors.toList()), hasItem("TENANT_TEST"));
 
     // Check if the change has been persisted in keycloak
-    logicResponse2 = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "TENANT_TEST").await().indefinitely();
+    logicResponse2 = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
     List<String> userRepresentation = logicResponse2.stream()
-      .map(user -> user.username)
-      .collect(Collectors.toList());
+        .map(user -> user.username)
+        .collect(Collectors.toList());
     assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
     assertThat(userRepresentation, hasItem("mrsquare"));
 
     // Kick the user out of the group
-    logicResponse = keycloakClientLogic.deleteUserFromGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "mrsquare", "TENANT_TEST").await().indefinitely();
+    logicResponse = keycloakClientLogic.deleteUserFromGroup(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(),
+        "mrsquare", "TENANT_TEST").await().indefinitely();
     assertThat(logicResponse.username, is("mrsquare"));
 
     // Check if the change has been persisted in keycloak
-    logicResponse2 = keycloakClientLogic.getUsersForGroup(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-      "TENANT_TEST").await().indefinitely();
+    logicResponse2 = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
     userRepresentation = logicResponse2.stream()
-      .map(user -> user.username)
-      .collect(Collectors.toList());
+        .map(user -> user.username)
+        .collect(Collectors.toList());
     assertThat(userRepresentation.size(), greaterThanOrEqualTo(0));
     assertThat(userRepresentation, not(hasItem("mrsquare")));
   }

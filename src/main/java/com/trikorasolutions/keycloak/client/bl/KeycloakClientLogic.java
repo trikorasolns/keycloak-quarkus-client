@@ -10,6 +10,7 @@ import com.trikorasolutions.keycloak.client.exception.*;
 import io.restassured.RestAssured;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.groups.UniJoin.Builder;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.keycloak.representations.AccessTokenResponse;
@@ -34,6 +35,9 @@ public class KeycloakClientLogic {
   private static final String GRANT_TYPE = "implicit";
   private static final String GRANT_TYPE_PS = "password";
 
+  @ConfigProperty(name = "trikora.keycloak.buffer-size")
+  private Integer KC_BUFFER_SIZE;
+
   @RestClient
   KeycloakAuthAdminResource keycloakClient;
 
@@ -51,7 +55,7 @@ public class KeycloakClientLogic {
    */
   public Uni<String> getTokenForUser(final String realm, final String keycloakClientId,
       final String secret) {
-    LOGGER.info("Getting token with params [realm: {}, client_id: {}]", realm, keycloakClientId);
+    LOGGER.debug("Getting token with params [realm: {}, client_id: {}]", realm, keycloakClientId);
     final String tok = RestAssured.given()
         .param("grant_type", "client_credentials")
         .param("client_id", keycloakClientId)
@@ -230,8 +234,8 @@ public class KeycloakClientLogic {
 
   /**
    * This method return a list with all the users in the client provided as argument. It makes use
-   * of the first and the max params, in order to paginate the search. Making recursion with the
-   * mutiny, will subscribe the events sequentially.
+   * of the Keycloak first and the max params, in order to paginate the search. Making recursion
+   * with the mutiny, will subscribe the events sequentially.
    *
    * @param realm            the realm name in which the users are going to be queried.
    * @param token            access token provided by the keycloak SecurityIdentity.
@@ -240,47 +244,45 @@ public class KeycloakClientLogic {
    */
   public Uni<List<KeycloakUserRepresentation>> listAllUsers(final String realm, final String token,
       final String keycloakClientId) {
-    return this.listAllUsers(realm, token, keycloakClientId, Integer.MAX_VALUE);
-    //  Keycloak di not allow to have more than (Int32) users, so Integer.MAX_VALUE would not
-    // imitate the search
+    return this.listAllUsersRec(realm, token, keycloakClientId, 0, Integer.MAX_VALUE,
+        new ArrayList<>());
   }
 
   /**
-   * This method return a list with all the users in the client provided as argument. It makes use
-   * of the first and the max params, in order to paginate the search. Making recursion with the
-   * mutiny, will subscribe the events sequentially.
+   * This method return a list with the users in the client provided as argument. It makes use of
+   * the Keycloak first and the max params, in order to paginate the search. This method is useful
+   * to paginate the users
    *
    * @param realm            the realm name in which the users are going to be queried.
    * @param token            access token provided by the keycloak SecurityIdentity.
    * @param keycloakClientId id of the client (service name).
-   * @param maxUsers         maximum number of users that are desired to be queried. It has to be a
-   *                         multiple of bufferSize that ATTOW is 100.
+   * @param first            first user to be fetched
+   * @param recCount         number of users to be fetched from the first one
    * @return a JsonArray of Keycloak UserRepresentations.
    */
   public Uni<List<KeycloakUserRepresentation>> listAllUsers(final String realm, final String token,
-      final String keycloakClientId, Integer maxUsers) {
-    int bufferSize = 100, cursor = 0;
-    LOGGER.info("#listAllUsers()...");
-    return this.listAllUsersRec(realm, token, keycloakClientId, cursor, bufferSize,
-        new ArrayList<>(), maxUsers);
+      final String keycloakClientId, Integer first, Integer recCount) {
+
+    return this.listAllUsersRec(realm, token, keycloakClientId, first, recCount,
+        new ArrayList<>());
   }
 
   private Uni<List<KeycloakUserRepresentation>> listAllUsersRec(final String realm,
       final String token,
-      final String keycloakClientId, int cursor, int bufferSize,
-      List<KeycloakUserRepresentation> res, Integer maxUsers) {
-    LOGGER.info("#listAllUsersRec(cursor,bufferSize,usersFetched)...{}-{}-{}", cursor, bufferSize,
-        res.size());
-    return keycloakClient.listAllUsers(BEARER + token, realm, GRANT_TYPE, keycloakClientId, cursor,
-            bufferSize)
+      final String keycloakClientId, Integer first, Integer recCount,
+      List<KeycloakUserRepresentation> res) {
+    LOGGER.debug("#listAllUsersRec(first, usersFetched)...{}-{}", first, res.size());
+    return keycloakClient.listAllUsers(BEARER + token, realm, GRANT_TYPE, keycloakClientId, first,
+            (KC_BUFFER_SIZE < (recCount - first) ? KC_BUFFER_SIZE : recCount - first))
         .map(KeycloakUserRepresentation::allFrom)
-        .flatMap(hundredUsers -> {
-          res.addAll(hundredUsers);
-          if (hundredUsers.size() < bufferSize || hundredUsers.size() >= maxUsers) {
+        .flatMap(currentSelection -> {
+          res.addAll(currentSelection);
+          if (currentSelection.size() < KC_BUFFER_SIZE || res.size() >= recCount) {
             return Uni.createFrom().item(res); // Recursion Base case
           } else {
-            return this.listAllUsersRec(realm, token, keycloakClientId, cursor + bufferSize,
-                bufferSize, res, maxUsers);
+            return this.listAllUsersRec(realm, token, keycloakClientId, first + KC_BUFFER_SIZE,
+                recCount,
+                res);
           }
         });
   }
@@ -317,6 +319,22 @@ public class KeycloakClientLogic {
   }
 
   /**
+   * Creates a group in Keycloak
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param newGroup         group that is going to be created into the Keycloak database.
+   * @return a GroupRepresentation of the new group.
+   */
+  public Uni<GroupRepresentation> createGroup(final String realm, final String token,
+      final String keycloakClientId, final GroupRepresentation newGroup) {
+    return keycloakClient.createGroup(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
+            "{\"name\": \"" + newGroup.name + "\"}")
+        .replaceWith(this.getGroupInfoNoEnrich(realm, token, keycloakClientId, newGroup.name));
+  }
+
+  /**
    * Return information of one group. And enrich it with its members. It can throw
    * NoSuchGroupException.
    *
@@ -332,7 +350,7 @@ public class KeycloakClientLogic {
     return getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
         .flatMap(group -> this.getGroupRolesById(realm, token, keycloakClientId, group.id)
             .map(group::addRoles))
-        .flatMap(group -> this.getUsersForGroupById(realm, token, keycloakClientId, group.id)
+        .flatMap(group -> this.getGroupMembers(realm, token, keycloakClientId, group.name)
             .map(group::addMembers)
         );
   }
@@ -347,28 +365,121 @@ public class KeycloakClientLogic {
   }
 
   /**
+   * Deletes a group in Keycloak
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param groupName        name of the group that is desired to be deleted.
+   * @return True if the groups has been removed from the DB, FALSE otherwise.
+   */
+  public Uni<Boolean> deleteGroup(final String realm, final String token,
+      final String keycloakClientId, final String groupName) {
+    return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+        .map(GroupRepresentation::getId)
+        .flatMap(groupId -> keycloakClient.deleteGroup(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, groupId))
+        .replaceWith(this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+            .map(x -> Boolean.FALSE)
+            .onFailure(NoSuchGroupException.class).recoverWithNull().replaceWith(Boolean.TRUE));
+
+  }
+
+  /**
+   * Add the given roles to the given group in Keycloak.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param groupName        name of the group that is desired to be updated.
+   * @param roles            an array  of the roles that are going to be added to the group.
+   * @return True if the groups has been removed from the DB, FALSE otherwise.
+   */
+  public Uni<GroupRepresentation> addRolesToGroup(final String realm, final String token,
+      final String keycloakClientId, final String groupName, RoleRepresentation[] roles) {
+
+    return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+        .map(GroupRepresentation::getId)
+        .flatMap(groupId -> keycloakClient.addRolesToGroup(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, groupId, roles))
+        .replaceWith(this.getGroupInfo(realm, token, keycloakClientId, groupName));
+  }
+
+  /**
+   * Removes the given roles from the given group in Keycloak.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param groupName        name of the group that is desired to be updated.
+   * @param roles            an array of the roles that are going to be  removed from the group.
+   * @return True if the groups has been removed from the DB, FALSE otherwise.
+   */
+  public Uni<GroupRepresentation> removeRolesFromGroup(final String realm, final String token,
+      final String keycloakClientId, final String groupName, RoleRepresentation[] roles) {
+    return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+        .map(GroupRepresentation::getId)
+        .flatMap(groupId -> keycloakClient.removeRolesFromGroup(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, groupId, roles))
+        .replaceWith(this.getGroupInfo(realm, token, keycloakClientId, groupName));
+  }
+
+  /**
    * Gets all the users that belongs to a concrete group. It can throw NoSuchGroupException.
    *
    * @param realm            the realm name in which the users are going to be queried.
    * @param token            access token provided by the keycloak SecurityIdentity.
    * @param keycloakClientId id of the client (service name).
    * @param groupName        name of the group that is going to be queried.
-   * @return a JsonArray of UserRepresentation.
+   * @return a JsonArray of GroupRepresentation.
    */
-  public Uni<List<KeycloakUserRepresentation>> getUsersForGroup(final String realm,
+  public Uni<List<KeycloakUserRepresentation>> getGroupMembers(final String realm,
       final String token, final String keycloakClientId, final String groupName) {
     return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
         .map(GroupRepresentation::getId)
-        .flatMap(userId -> keycloakClient.getGroupUsers(BEARER + token, realm, GRANT_TYPE,
-            keycloakClientId, userId))
-        .map(KeycloakUserRepresentation::allFrom);
+        .flatMap(groupId -> this.getGroupMembersRec(realm, token, keycloakClientId, groupId, 0,
+            Integer.MAX_VALUE, new ArrayList<>()));
+
   }
 
-  private Uni<List<KeycloakUserRepresentation>> getUsersForGroupById(final String realm,
-      final String token, final String keycloakClientId, final String id) {
-    return keycloakClient.getGroupUsers(BEARER + token, realm, GRANT_TYPE,
-            keycloakClientId, id)
-        .map(KeycloakUserRepresentation::allFrom);
+  /**
+   * Gets all the users that belongs to a concrete group. It can throw NoSuchGroupException.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param groupName        name of the group that is going to be queried.
+   * @param first            first user to be fetched within the members of the group
+   * @param recCount         number of users to be fetched from the first one
+   * @return a JsonArray of GroupRepresentation.
+   */
+  public Uni<List<KeycloakUserRepresentation>> getGroupMembers(final String realm,
+      final String token, final String keycloakClientId, final String groupName, Integer first,
+      Integer recCount) {
+    return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+        .map(GroupRepresentation::getId)
+        .flatMap(groupId -> this.getGroupMembersRec(realm, token, keycloakClientId, groupId, first,
+            recCount, new ArrayList<>()));
+
+  }
+
+  private Uni<List<KeycloakUserRepresentation>> getGroupMembersRec(final String realm,
+      final String token,
+      final String keycloakClientId, final String groupId, Integer first, Integer recCount,
+      List<KeycloakUserRepresentation> res) {
+    LOGGER.debug("#getGroupMembersRec(cursor, usersFetched)...{}-{}", first, res.size());
+    return keycloakClient.getGroupUsers(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
+            groupId, first, (KC_BUFFER_SIZE < (recCount - first) ? KC_BUFFER_SIZE : recCount - first))
+        .map(KeycloakUserRepresentation::allFrom)
+        .flatMap(currentSelection -> {
+          res.addAll(currentSelection);
+          if (currentSelection.size() < KC_BUFFER_SIZE || res.size() >= recCount) {
+            return Uni.createFrom().item(res); // Recursion Base case
+          } else {
+            return this.getGroupMembersRec(realm, token, keycloakClientId, groupId,
+                first + KC_BUFFER_SIZE, recCount, res);
+          }
+        });
   }
 
   /**
@@ -423,6 +534,8 @@ public class KeycloakClientLogic {
   }
 
   /******************************* ROLE FUNCTIONS *******************************/
+
+
   /**
    * Return a List of RoleRepresentation with all the roles to the User.
    *
@@ -548,7 +661,7 @@ public class KeycloakClientLogic {
         .combinedWith((users, groups) -> {
           Builder<List<KeycloakUserRepresentation>> builder = Uni.join().builder();
           for (GroupRepresentation group : groups) {
-            builder.add(this.getUsersForGroup(realm, token, keycloakClientId, group.name));
+            builder.add(this.getGroupMembers(realm, token, keycloakClientId, group.name));
           }
           return builder.joinAll().andCollectFailures()
               .map(listOfList -> listOfList.stream()

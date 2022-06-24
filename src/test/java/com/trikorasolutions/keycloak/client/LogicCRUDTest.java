@@ -311,9 +311,26 @@ public class LogicCRUDTest {
 
     List<String> usernameList = logicResponse.stream()
         .map(tuple -> tuple.username).collect(Collectors.toList());
-
     assertThat(usernameList, hasItems("jdoe", ADM, "mrsquare", "mrtriangle"));
-    LOGGER.info("TOTAL USERS IN REALM LIST: {}", logicResponse.size());
+    LOGGER.info("TOTAL USERS IN REALM LIST: {}{}", logicResponse.size(), logicResponse.get(1));
+
+    // Test base case of recursion
+    int f = 50, m = 75;
+    logicResponse = keycloakClientLogic.listAllUsers(
+            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), f, m)
+        .await().indefinitely();
+    assertThat(logicResponse.size(), is(m - f));
+    m = 275;
+    logicResponse = keycloakClientLogic.listAllUsers(
+            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), f, m)
+        .await().indefinitely();
+    assertThat(logicResponse.size(), is(m - f));
+    f = 0;
+    m = 300;
+    logicResponse = keycloakClientLogic.listAllUsers(
+            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), f, m)
+        .await().indefinitely();
+    assertThat(logicResponse.size(), is(m - f));
   }
 
   @Test

@@ -659,6 +659,8 @@ curl -s -X GET 'http://localhost:8090/auth/admin/realms/trikorasolutions/users/c
   }
 }
 ----
+Create realm role
+curl -X POST "http://localhost:8090/auth/admin/realms/trikorasolutions/roles"  -H "Content-Type: application/json"  -H "Authorization: Bearer ${TKN}"  -d '{"name": "test-role2"}' | jq .
 
 == Tokens
 (example with different credential types)
