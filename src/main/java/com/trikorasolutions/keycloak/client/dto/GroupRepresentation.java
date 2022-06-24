@@ -29,10 +29,15 @@ public class GroupRepresentation {
   @JsonProperty("members")
   public Set<KeycloakUserRepresentation> members;
 
-  public GroupRepresentation(String id) {
+  public GroupRepresentation(String id, String name) {
     this.id = id;
+    this.name = name;
     this.roles = new LinkedHashSet<>();
     this.members = new LinkedHashSet<>();
+  }
+
+  public GroupRepresentation(String name) {
+    this.name = name;
   }
 
   public GroupRepresentation(String id, String name, String path) {
@@ -52,16 +57,11 @@ public class GroupRepresentation {
 
     // Create the DTO only with the mandatory fields
     GroupRepresentation parsedResponse = new GroupRepresentation(
-        from.getString("id"));
+        from.getString("id"), from.getString("name"));
 
-    // Then add only the available optional fields
-    Iterator<String> iterator = from.keySet().iterator();
-    while (iterator.hasNext()) {
-      String key = iterator.next();
+    // Then add only the available optional fields (more fields will be added in future releases)
+    for (String key : from.keySet()) {
       switch (key) {
-        case "name":
-          parsedResponse.setName(from.getString(key));
-          break;
         case "path":
           parsedResponse.setPath(from.getString(key));
           break;

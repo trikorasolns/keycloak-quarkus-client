@@ -29,6 +29,25 @@ public class LogicGroupTest {
   @Inject
   TrikoraKeycloakClientInfo tkrKcCli;
 
+
+  @Test
+  public void testCreateGroupOk() {
+    String accessToken = tkrKcCli.getAccessToken(ADM);
+    GroupRepresentation newGroup = new GroupRepresentation("TEST_CREATE");
+    LOGGER.info("test{}", newGroup);
+    GroupRepresentation logicResponse;
+    boolean logicResponse2;
+
+    logicResponse = keycloakClientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newGroup).await().indefinitely();
+    assertThat(logicResponse.getName(), is(newGroup.name));
+
+    logicResponse2= keycloakClientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), logicResponse.name).await().indefinitely();
+    assertThat(logicResponse2, is(true));
+
+  }
+
   @Test
   public void testGroupInfoOk() {
     String accessToken = tkrKcCli.getAccessToken(ADM);
