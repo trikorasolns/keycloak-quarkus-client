@@ -16,6 +16,7 @@ import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.wildfly.common.Assert.assertFalse;
 
 @QuarkusTest
 public class LogicCRUDTest {
@@ -190,7 +191,7 @@ public class LogicCRUDTest {
         tkrKcCli.getClientId(),
         newUser.username).await().indefinitely(); // Gets the user info
 
-    LOGGER.info("GET USER INFO: {}", logicResponse);
+    // LOGGER.info("GET USER INFO: {}", logicResponse);
 
     assertThat(logicResponse.firstName, is(newUser.firstName));
     assertThat(logicResponse.lastName, is(newUser.lastName));
@@ -288,17 +289,9 @@ public class LogicCRUDTest {
   public void testDeleteUserErr() {
     String accessToken = tkrKcCli.getAccessToken(ADM);
 
-    try { // It is not possible to delete unregistered users
-      keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-          "unknown").onFailure(NoSuchUserException.class).transform(x -> {
-        throw (NoSuchUserException) x;
-      }).await().indefinitely();
-
-      assertTrue(false);
-    } catch (NoSuchUserException ex) {
-      assertThat(ex.getClass(), is(NoSuchUserException.class));
-      assertThat(ex.getMessage(), containsString("unknown"));
-    }
+    Boolean res = keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), "unknown").await().indefinitely();
+    assertFalse(res);
   }
 
   @Test
@@ -312,7 +305,7 @@ public class LogicCRUDTest {
     List<String> usernameList = logicResponse.stream()
         .map(tuple -> tuple.username).collect(Collectors.toList());
     assertThat(usernameList, hasItems("jdoe", ADM, "mrsquare", "mrtriangle"));
-    LOGGER.info("TOTAL USERS IN REALM LIST: {}{}", logicResponse.size(), logicResponse.get(1));
+    // LOGGER.info("TOTAL USERS IN REALM LIST: {}{}", logicResponse.size(), logicResponse.get(1));
 
     // Test base case of recursion
     int f = 50, m = 75;
@@ -358,7 +351,7 @@ public class LogicCRUDTest {
         tkrKcCli.getClientId(),
         newUser.username).await().indefinitely(); // Gets the user info
 
-    LOGGER.info("GET USER INFO: {}", logicResponse);
+    // LOGGER.info("GET USER INFO: {}", logicResponse);
 
     // Disable the user
     logicResponse2 = keycloakClientLogic.disableUser(tkrKcCli.getRealmName(), accessToken,

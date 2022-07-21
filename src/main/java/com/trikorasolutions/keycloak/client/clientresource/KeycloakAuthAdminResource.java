@@ -284,7 +284,7 @@ public interface KeycloakAuthAdminResource {
   Uni<JsonArray> addRolesToGroup(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId, @PathParam("id") String groupId,
-      RoleRepresentation[] roles);
+      String roles);
 
   /**
    * Remove the given role mappings from a group

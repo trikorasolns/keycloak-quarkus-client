@@ -662,6 +662,16 @@ curl -s -X GET 'http://localhost:8090/auth/admin/realms/trikorasolutions/users/c
 Create realm role
 curl -X POST "http://localhost:8090/auth/admin/realms/trikorasolutions/roles"  -H "Content-Type: application/json"  -H "Authorization: Bearer ${TKN}"  -d '{"name": "test-role2"}' | jq .
 
+Add role to group
+curl -s -X POST \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/groups/1445ea0b-8ad7-4259-b2e5-effbfb2905bc/role-mappings/realm' \
+-H "Accept: application/json" \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer ${TKN}" \
+-d '[{"id": "cb7ef5d2-060e-4efb-b203-7c9700312a26","name": "application_user"}]' | jq .
+
+
+
 == Tokens
 (example with different credential types)
 https://www.appsdeveloperblog.com/oauth-2-implicit-grant-type-flow-example/

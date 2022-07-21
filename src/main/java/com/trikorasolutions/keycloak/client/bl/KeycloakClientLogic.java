@@ -18,9 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.enterprise.context.ApplicationScoped;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 import static java.util.function.UnaryOperator.identity;
@@ -229,7 +231,9 @@ public class KeycloakClientLogic {
     return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
         .call(user -> keycloakClient.deleteUser(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, user.id))
-        .map(x -> Boolean.TRUE);
+        .map(x -> Boolean.TRUE)
+        .onFailure().invoke(ex->LOGGER.debug("{}",ex.getMessage()))
+        .onFailure().recoverWithItem(Boolean.FALSE);
   }
 
   /**
@@ -379,9 +383,9 @@ public class KeycloakClientLogic {
         .map(GroupRepresentation::getId)
         .flatMap(groupId -> keycloakClient.deleteGroup(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, groupId))
-        .replaceWith(this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
-            .map(x -> Boolean.FALSE)
-            .onFailure(NoSuchGroupException.class).recoverWithNull().replaceWith(Boolean.TRUE));
+        .map(x -> Boolean.TRUE)
+        .onFailure().invoke(ex->LOGGER.debug("{}",ex.getMessage()))
+        .onFailure().recoverWithItem(Boolean.FALSE);
 
   }
 
@@ -396,12 +400,18 @@ public class KeycloakClientLogic {
    * @return True if the groups has been removed from the DB, FALSE otherwise.
    */
   public Uni<GroupRepresentation> addRolesToGroup(final String realm, final String token,
-      final String keycloakClientId, final String groupName, RoleRepresentation[] roles) {
+      final String keycloakClientId, final String groupName, String[] roles) {
+
+    StringJoiner newRoles = new StringJoiner(",", "[","]");
+    for (String role : roles) {
+      newRoles.add("{\"name\": \"" + role + "\"}");
+    }
+    LOGGER.warn("Roles to add: {}", newRoles);
 
     return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
         .map(GroupRepresentation::getId)
         .flatMap(groupId -> keycloakClient.addRolesToGroup(BEARER + token, realm, GRANT_TYPE,
-            keycloakClientId, groupId, roles))
+            keycloakClientId, groupId, newRoles.toString()))
         .replaceWith(this.getGroupInfo(realm, token, keycloakClientId, groupName));
   }
 
@@ -425,7 +435,7 @@ public class KeycloakClientLogic {
   }
 
   /**
-   * Gets all the users that belongs to a concrete group. It can throw NoSuchGroupException.
+   * Returns all the users that belongs to a concrete group. It can throw NoSuchGroupException.
    *
    * @param realm            the realm name in which the users are going to be queried.
    * @param token            access token provided by the keycloak SecurityIdentity.
