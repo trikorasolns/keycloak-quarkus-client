@@ -2,13 +2,18 @@ package com.trikorasolutions.keycloak.client.dto;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.Collection;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonValue;
-import java.util.*;
-import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class GroupRepresentation {
 
@@ -29,23 +34,21 @@ public class GroupRepresentation {
   @JsonProperty("members")
   public Set<KeycloakUserRepresentation> members;
 
-  public GroupRepresentation(String id, String name) {
-    this.id = id;
-    this.name = name;
-    this.roles = new LinkedHashSet<>();
-    this.members = new LinkedHashSet<>();
-  }
-
+  public GroupRepresentation() {}
   public GroupRepresentation(String name) {
     this.name = name;
   }
 
-  public GroupRepresentation(String id, String name, String path) {
+  public GroupRepresentation(String id, String name) {
+    this(name);
     this.id = id;
-    this.name = name;
-    this.path = path;
     this.roles = new LinkedHashSet<>();
     this.members = new LinkedHashSet<>();
+  }
+
+  public GroupRepresentation(String id, String name, String path) {
+    this(id, name);
+    this.path = path;
   }
 
   public static GroupRepresentation from(JsonObject from) {

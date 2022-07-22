@@ -35,13 +35,21 @@ public class RoleRepresentation {
   @JsonProperty("containerId")
   public String containerId;
 
+  public RoleRepresentation() {
+  }
+
   public RoleRepresentation(String id) {
     this.id = id;
   }
 
+  public RoleRepresentation(String name, String description) {
+    this.name = name;
+    this.description = description;
+  }
+
   public RoleRepresentation(String id, String name, String description, Boolean composite,
       Boolean clientRole, String containerId) {
-    this.id = id;
+    this(id);
     this.name = name;
     this.description = description;
     this.composite = composite;
