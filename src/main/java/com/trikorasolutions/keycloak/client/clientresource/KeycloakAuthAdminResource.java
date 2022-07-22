@@ -1,6 +1,5 @@
 package com.trikorasolutions.keycloak.client.clientresource;
 
-import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation.UserDtoCredential;
@@ -276,12 +275,28 @@ public interface KeycloakAuthAdminResource {
    * @param groupId id of the group to be upgraded.
    * @param roles   array containing the roles to be added, both id and name of the roles need to be
    *                provided.
-   * @return JsonArray with the roles
+   * @return -
    */
   @POST
   @Path("/realms/{realm}/groups/{id}/role-mappings/realm")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> addRolesToGroup(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String groupId,
+      String roles);
+
+  /**
+   * Removes the given role mappings to a group
+   *
+   * @param groupId id of the group to be upgraded.
+   * @param roles   array containing the roles to be added, both id and name of the roles need to be
+   *                provided.
+   * @return -
+   */
+  @DELETE
+  @Path("/realms/{realm}/groups/{id}/role-mappings/realm")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> removeRolesToGroup(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId, @PathParam("id") String groupId,
       String roles);
@@ -315,5 +330,69 @@ public interface KeycloakAuthAdminResource {
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId, @PathParam("id") String groupId);
 
+  /**
+   * Return all the roles at realm level
+   *
+   * @return JsonArray with the role details
+   */
+  @GET
+  @Path("/realms/{realm}/roles")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> listRoles(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId);
+
+  /**
+   * Creates a role
+   *
+   * @param role RoleRepresentation of the Role to be created
+   * @return JsonArray with the role details
+   */
+  @POST
+  @Path("/realms/{realm}/roles")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> createRole(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, RoleRepresentation role);
+
+  /**
+   * Gets a role by name
+   *
+   * @param roleName id of the role to be queried
+   * @return JsonArray with the role details
+   */
+  @GET
+  @Path("/realms/{realm}/roles")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getRole(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @QueryParam("search") String roleName);
+
+  /**
+   * Updates a role
+   *
+   * @param roleId id of the Role to be deleted
+   * @return JsonArray with the role details
+   */
+  @PUT
+  @Path("/realms/{realm}/roles-by-id/{id}")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> updateRole(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String roleId,
+      RoleRepresentation role);
+
+  /**
+   * Deletes a role
+   *
+   * @param roleId id of the Role to be deleted
+   * @return JsonArray with the role details
+   */
+  @DELETE
+  @Path("/realms/{realm}/roles-by-id/{id}")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> deleteRole(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String roleId);
 
 }

@@ -1,32 +1,41 @@
 package com.trikorasolutions.keycloak.client.bl;
 
+import static java.util.function.UnaryOperator.identity;
+import static javax.ws.rs.core.Response.Status.CONFLICT;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
+
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthAdminResource;
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthorizationResource;
 import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
-import com.trikorasolutions.keycloak.client.exception.*;
+import com.trikorasolutions.keycloak.client.exception.ArgumentsFormatException;
+import com.trikorasolutions.keycloak.client.exception.ClientNotFoundException;
+import com.trikorasolutions.keycloak.client.exception.DuplicatedUserException;
+import com.trikorasolutions.keycloak.client.exception.InvalidTokenException;
+import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
+import com.trikorasolutions.keycloak.client.exception.NoSuchRoleException;
+import com.trikorasolutions.keycloak.client.exception.NoSuchUserException;
 import io.restassured.RestAssured;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.groups.UniJoin.Builder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.enterprise.context.ApplicationScoped;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.stream.Collectors;
-
-import static java.util.function.UnaryOperator.identity;
-import static javax.ws.rs.core.Response.Status.*;
 
 
 @ApplicationScoped
@@ -232,7 +241,7 @@ public class KeycloakClientLogic {
         .call(user -> keycloakClient.deleteUser(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, user.id))
         .map(x -> Boolean.TRUE)
-        .onFailure().invoke(ex->LOGGER.debug("{}",ex.getMessage()))
+        .onFailure().invoke(ex -> LOGGER.debug("{}", ex.getMessage()))
         .onFailure().recoverWithItem(Boolean.FALSE);
   }
 
@@ -384,9 +393,28 @@ public class KeycloakClientLogic {
         .flatMap(groupId -> keycloakClient.deleteGroup(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, groupId))
         .map(x -> Boolean.TRUE)
-        .onFailure().invoke(ex->LOGGER.debug("{}",ex.getMessage()))
+        .onFailure().invoke(ex -> LOGGER.debug("{}", ex.getMessage()))
         .onFailure().recoverWithItem(Boolean.FALSE);
+  }
 
+  private Uni<String> generateRolesJsonFromNameArray(final String realm, final String token,
+      final String keycloakClientId, String... roles) {
+    Builder<String> builder = Uni.join().builder();
+    LinkedHashMap<String, String> idMapper = new LinkedHashMap<>();
+    Arrays.stream(roles).forEach(roleName ->
+        builder.add(this.getRoleInfo(realm, token, keycloakClientId, roleName)
+            .map(role -> idMapper.put(role.name, role.id))
+        )
+    );
+    return builder.joinAll().andCollectFailures()
+        .map(ids -> {
+          StringJoiner newRoles = new StringJoiner(",", "[", "]");
+          for (String role : idMapper.keySet()) {
+            newRoles.add("{\"id\": \"" + idMapper.get(role) + "\", \"name\": \"" + role + "\"}");
+          }
+          LOGGER.debug("Roles to add/delete: {}", newRoles);
+          return newRoles.toString();
+        });
   }
 
   /**
@@ -397,22 +425,20 @@ public class KeycloakClientLogic {
    * @param keycloakClientId id of the client (service name).
    * @param groupName        name of the group that is desired to be updated.
    * @param roles            an array  of the roles that are going to be added to the group.
-   * @return True if the groups has been removed from the DB, FALSE otherwise.
+   * @return An enriched GroupRepresentation, containing all the roles of the group.
    */
   public Uni<GroupRepresentation> addRolesToGroup(final String realm, final String token,
-      final String keycloakClientId, final String groupName, String[] roles) {
+      final String keycloakClientId, final String groupName, String... roles) {
 
-    StringJoiner newRoles = new StringJoiner(",", "[","]");
-    for (String role : roles) {
-      newRoles.add("{\"name\": \"" + role + "\"}");
-    }
-    LOGGER.warn("Roles to add: {}", newRoles);
-
-    return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
-        .map(GroupRepresentation::getId)
-        .flatMap(groupId -> keycloakClient.addRolesToGroup(BEARER + token, realm, GRANT_TYPE,
-            keycloakClientId, groupId, newRoles.toString()))
-        .replaceWith(this.getGroupInfo(realm, token, keycloakClientId, groupName));
+    return this.generateRolesJsonFromNameArray(realm, token, keycloakClientId, roles)
+        .flatMap(rolesStr ->
+            this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+                .map(GroupRepresentation::getId)
+                .flatMap(
+                    groupId -> keycloakClient.addRolesToGroup(BEARER + token, realm, GRANT_TYPE,
+                        keycloakClientId, groupId, rolesStr))
+                .replaceWith(this.getGroupInfo(realm, token, keycloakClientId, groupName))
+        );
   }
 
   /**
@@ -423,15 +449,21 @@ public class KeycloakClientLogic {
    * @param keycloakClientId id of the client (service name).
    * @param groupName        name of the group that is desired to be updated.
    * @param roles            an array of the roles that are going to be  removed from the group.
-   * @return True if the groups has been removed from the DB, FALSE otherwise.
+   * @return An enriched GroupRepresentation, containing all the roles of the group.
    */
   public Uni<GroupRepresentation> removeRolesFromGroup(final String realm, final String token,
-      final String keycloakClientId, final String groupName, RoleRepresentation[] roles) {
-    return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
-        .map(GroupRepresentation::getId)
-        .flatMap(groupId -> keycloakClient.removeRolesFromGroup(BEARER + token, realm, GRANT_TYPE,
-            keycloakClientId, groupId, roles))
-        .replaceWith(this.getGroupInfo(realm, token, keycloakClientId, groupName));
+      final String keycloakClientId, final String groupName, String... roles) {
+
+    return this.generateRolesJsonFromNameArray(realm, token, keycloakClientId, roles)
+        .flatMap(rolesStr ->
+            this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+                .map(GroupRepresentation::getId)
+                .flatMap(
+                    groupId -> keycloakClient.removeRolesToGroup(BEARER + token, realm, GRANT_TYPE,
+                        keycloakClientId, groupId, rolesStr))
+                .replaceWith(this.getGroupInfo(realm, token, keycloakClientId, groupName))
+
+        );
   }
 
   /**
@@ -545,6 +577,94 @@ public class KeycloakClientLogic {
 
   /******************************* ROLE FUNCTIONS *******************************/
 
+  /**
+   * Retrieves the 100 first roles from the Keycloak DB.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @return A list of RoleRepresentation containing the 100 first roles of Keycloak.
+   */
+  public Uni<List<RoleRepresentation>> listAllRoles(final String realm, final String token,
+      final String keycloakClientId) {
+    return keycloakClient.listRoles(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId)
+        .map(RoleRepresentation::allFrom);
+  }
+
+  /**
+   * Creates a role from in Keycloak DB.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param newRole          the new RoleRepresentation that is going to be persisted in Keycloak
+   * @return the RoleRepresentation given but enriched with the Keycloak fields (for instance, the
+   * id)
+   */
+  public Uni<RoleRepresentation> createRole(final String realm, final String token,
+      final String keycloakClientId, final RoleRepresentation newRole) {
+    return keycloakClient.createRole(BEARER + token, realm, GRANT_TYPE, keycloakClientId, newRole)
+        .replaceWith(this.getRoleInfo(realm, token, keycloakClientId, newRole.name));
+  }
+
+  /**
+   * Retrieves a role from the Keycloak DB.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param roleName         the name of the role that is desired to be queried in the Keycloak
+   * @return the RoleRepresentation of the desired role.
+   */
+  public Uni<RoleRepresentation> getRoleInfo(final String realm, final String token,
+      final String keycloakClientId, final String roleName) {
+    return keycloakClient.getRole(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, roleName)
+        .map(jsonArray -> (jsonArray.size() != 1) ? null : jsonArray.get(0).asJsonObject())
+        .onItem().ifNull().failWith(() -> new NoSuchRoleException(roleName))
+        .map(RoleRepresentation::from);
+  }
+
+  /**
+   * Updates a role in the Keycloak DB.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param roleName         name of the role that is going to be updated.
+   * @param newRole          the Rolerepresentation with the updated information
+   * @return the final RoleRepresentation of the role.
+   */
+  public Uni<RoleRepresentation> updateRole(final String realm, final String token,
+      final String keycloakClientId, final String roleName, final RoleRepresentation newRole) {
+    return this.getRoleInfo(realm, token, keycloakClientId, roleName)
+        .map(RoleRepresentation::getId)
+        .flatMap(
+            roleId -> keycloakClient.updateRole(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
+                roleId, newRole))
+        .replaceWith(this.getRoleInfo(realm, token, keycloakClientId, newRole.name));
+  }
+
+  /**
+   * Deletes a role from the Keycloak DB.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param roleName         name of the role that is going to be deleted
+   * @return True if the role has been deleted from the Keycloak DB or false otherwise
+   */
+  public Uni<Boolean> deleteRole(final String realm, final String token,
+      final String keycloakClientId, final String roleName) {
+    return this.getRoleInfo(realm, token, keycloakClientId, roleName)
+        .map(RoleRepresentation::getId)
+        .flatMap(roleId -> keycloakClient.deleteRole(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, roleId))
+        .map(x -> Boolean.TRUE)
+        .onFailure().invoke(ex -> LOGGER.debug("{}", ex.getMessage()))
+        .onFailure().recoverWithItem(Boolean.FALSE);
+  }
 
   /**
    * Return a List of RoleRepresentation with all the roles to the User.
@@ -600,8 +720,7 @@ public class KeycloakClientLogic {
   }
 
   /**
-   * Return the UserRepresentation of one user queried by his username. It can throw
-   * NoSuchUserException.
+   * Return all the roles assigned to the given group.
    *
    * @param realm            the realm name in which the users are going to be queried.
    * @param token            access token provided by the keycloak SecurityIdentity.

@@ -61,7 +61,6 @@ public class LogicGroupTest {
         "TENANT_TEST").await().indefinitely();
 
     assertThat(logicResponse.getName(), is("TENANT_TEST"));
-    LOGGER.info("test{}", logicResponse);
   }
 
   @Test
@@ -141,7 +140,6 @@ public class LogicGroupTest {
     String accessToken = tkrKcCli.getAccessToken(ADM);
     GroupRepresentation newGroup = new GroupRepresentation("TEST_ROLE");
     String[] roles = {"application_user", "hr", "space_manager"};
-    LOGGER.info("test role{}", newGroup);
 
     GroupRepresentation logicResponse;
     List<RoleRepresentation> logicResponse2;
@@ -152,15 +150,33 @@ public class LogicGroupTest {
         tkrKcCli.getClientId(), newGroup).await().indefinitely();
     assertThat(logicResponse.getName(), is(newGroup.name));
 
+    // Add the roles to the group
     keycloakClientLogic.addRolesToGroup(tkrKcCli.getRealmName(), accessToken,
         tkrKcCli.getClientId(), newGroup.name, roles).await().indefinitely();
 
     logicResponse2 = keycloakClientLogic.getGroupRoles(tkrKcCli.getRealmName(), accessToken,
         tkrKcCli.getClientId(), newGroup.name).await().indefinitely();
 
-    LOGGER.warn("TEST {}", logicResponse2);
+    // Check that all the roles has been added correctly
+    assertThat(logicResponse2
+        .stream()
+        .map(RoleRepresentation::getName)
+        .collect(Collectors.toList()), containsInAnyOrder(roles));
 
-    // TearDown
+    // Remove the roles from the group
+    keycloakClientLogic.removeRolesFromGroup(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newGroup.name, roles).await().indefinitely();
+
+    logicResponse2 = keycloakClientLogic.getGroupRoles(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newGroup.name).await().indefinitely();
+
+    // Check that all the roles has been removed correctly
+    assertThat(logicResponse2
+        .stream()
+        .map(RoleRepresentation::getName)
+        .collect(Collectors.toList()), not(containsInAnyOrder(roles)));
+
+    //TearDown
     keycloakClientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
         tkrKcCli.getClientId(), newGroup.name).await().indefinitely();
 
