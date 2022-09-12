@@ -16,6 +16,7 @@ import com.trikorasolutions.keycloak.client.exception.ClientNotFoundException;
 import com.trikorasolutions.keycloak.client.exception.DuplicatedUserException;
 import com.trikorasolutions.keycloak.client.exception.InvalidTokenException;
 import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
+import com.trikorasolutions.keycloak.client.exception.NoSuchRoleException;
 import com.trikorasolutions.keycloak.client.exception.NoSuchUserException;
 import io.restassured.RestAssured;
 import io.smallrye.mutiny.Uni;
@@ -564,7 +565,103 @@ public class KeycloakClientLogic {
   }
 
   /******************************* ROLE FUNCTIONS *******************************/
+  /**
+   * Creates a role in Keycloak
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param newRole          role that is going to be created into the Keycloak database.
+   * @return a GroupRepresentation of the new role.
+   */
+  public Uni<RoleRepresentation> createRole(final String realm, final String token,
+      final String keycloakClientId, final RoleRepresentation newRole) {
+    return keycloakClient.createRole(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
+            newRole)
+        .onFailure(ClientWebApplicationException.class).transform(ex -> {
+          if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
+            return new DuplicatedUserException(newRole.name);
+          } else if (ex.getMessage().contains(String.valueOf(UNAUTHORIZED.getStatusCode()))) {
+            return new InvalidTokenException();
+          } else if (ex.getMessage().contains(String.valueOf(NOT_FOUND.getStatusCode()))) {
+            return new ClientNotFoundException(keycloakClientId, realm);
+          } else {
+            return new ArgumentsFormatException(
+                "The user representation provided to Keycloak is incorrect, with error: "
+                    + ex.getMessage());
+          }
+        })
+        .replaceWith(this.getRoleInfoNoEnrich(realm, token, keycloakClientId, newRole.name));
+        //.replaceWith(() -> newRole);
+  }
 
+  /**
+   * Return a list containing all the roles of the realm.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @return a List of RoleRepresentations of contatinig all the roles in the realm.
+   */
+  public Uni<List<RoleRepresentation>> listAllRoles(final String realm, final String token,
+      final String keycloakClientId) {
+    return keycloakClient.getAllRoles(BEARER + token, realm, GRANT_TYPE, keycloakClientId)
+        .map(RoleRepresentation::allFrom);
+  }
+
+  /**
+   * Return information of one role. And enrich it with its members. It can throw
+   * NoSuchRoleException.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param roleName         name of the role that is going to be queried in the Keycloak database.
+   * @return a RoleRepresentation of the desired role.
+   */
+  public Uni<RoleRepresentation> getRoleInfoNoEnrich(final String realm, final String token,
+      final String keycloakClientId, final String roleName) {
+    LOGGER.warn("ROLE INFO {}", roleName);
+    return keycloakClient.getRoleInfo(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
+            roleName)
+        .invoke(x -> LOGGER.warn("AFTER INFO {}", x))
+        .map(jsonArray -> (jsonArray.size() != 1) ? null : jsonArray.get(0).asJsonObject())
+        .onItem().ifNull().failWith(() -> new NoSuchRoleException(roleName))
+        .map(RoleRepresentation::from);
+  }
+
+  /**
+   * Updates a role in the KC database.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param roleName         name of the role that is going to be queried in the Keycloak database.
+   * @param newRole          role representation of the role that is going to be updated
+   * @return a RoleRepresentation of the desired role.
+   */
+  public Uni<RoleRepresentation> updateRole(final String realm, final String token,
+      final String keycloakClientId, final String roleName, final RoleRepresentation newRole) {
+    return keycloakClient.updateRole(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
+            roleName, newRole)
+        .replaceWith(this.getRoleInfoNoEnrich(realm, token, keycloakClientId, newRole.name));
+  }
+
+  /**
+   * Deletes a role in Keycloak
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param roleName         name of the role that is desired to be deleted.
+   * @return True if the roles has been removed from the DB, FALSE otherwise.
+   */
+  public Uni<Boolean> deleteRole(final String realm, final String token,
+      final String keycloakClientId, final String roleName) {
+    return keycloakClient.deleteRole(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, roleName)
+        .map(x -> true);
+  }
 
   /**
    * Return a List of RoleRepresentation with all the roles to the User.
