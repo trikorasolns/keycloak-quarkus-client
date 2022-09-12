@@ -1,30 +1,37 @@
 package com.trikorasolutions.keycloak.client.bl;
 
+import static java.util.function.UnaryOperator.identity;
+import static javax.ws.rs.core.Response.Status.CONFLICT;
+import static javax.ws.rs.core.Response.Status.NOT_FOUND;
+import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
+
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthAdminResource;
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthorizationResource;
 import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
-import com.trikorasolutions.keycloak.client.exception.*;
+import com.trikorasolutions.keycloak.client.exception.ArgumentsFormatException;
+import com.trikorasolutions.keycloak.client.exception.ClientNotFoundException;
+import com.trikorasolutions.keycloak.client.exception.DuplicatedUserException;
+import com.trikorasolutions.keycloak.client.exception.InvalidTokenException;
+import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
+import com.trikorasolutions.keycloak.client.exception.NoSuchUserException;
 import io.restassured.RestAssured;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.groups.UniJoin.Builder;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.enterprise.context.ApplicationScoped;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import static java.util.function.UnaryOperator.identity;
-import static javax.ws.rs.core.Response.Status.*;
 
 
 @ApplicationScoped
@@ -230,7 +237,7 @@ public class KeycloakClientLogic {
   public Uni<KeycloakUserRepresentation> getUserInfoNoEnrich(final String realm, final String token,
       final String keycloakClientId, final String userName) {
     return keycloakClient.getUserInfo(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
-            userName)
+            userName, Boolean.TRUE)
         .map(jsonArray -> (jsonArray.size() != 1) ? null : jsonArray.get(0).asJsonObject())
         .onItem().ifNull().failWith(() -> new NoSuchUserException(userName)).onItem().ifNotNull()
         .transform(KeycloakUserRepresentation::from);
@@ -252,7 +259,6 @@ public class KeycloakClientLogic {
     return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
         .call(user -> keycloakClient.deleteUser(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, user.id))
-        .onFailure().invoke(x->LOGGER.warn("DELETE USR ERROR: {}", x.getMessage()))
         .map(x -> Boolean.TRUE);
   }
 
@@ -382,7 +388,7 @@ public class KeycloakClientLogic {
   public Uni<GroupRepresentation> getGroupInfoNoEnrich(final String realm, final String token,
       final String keycloakClientId, final String groupName) {
     return keycloakClient.getGroupInfo(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
-            groupName)
+            groupName, Boolean.TRUE)
         .map(jsonArray -> (jsonArray.size() != 1) ? null : jsonArray.get(0).asJsonObject())
         .onItem().ifNull().failWith(() -> new NoSuchGroupException(groupName))
         .map(GroupRepresentation::from);

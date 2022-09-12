@@ -93,7 +93,8 @@ public interface KeycloakAuthAdminResource {
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getUserInfo(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @QueryParam("username") String username);
+      @QueryParam("client_id") String clientId, @QueryParam("username") String username,
+      @QueryParam("exact") Boolean exact);
 
   /**
    * Deletes a user from the Keycloak database.
@@ -158,7 +159,8 @@ public interface KeycloakAuthAdminResource {
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getGroupInfo(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @QueryParam("search") String groupName);
+      @QueryParam("client_id") String clientId, @QueryParam("search") String groupName,
+      @QueryParam("exact") Boolean exact);
 
 
   /**
