@@ -5,9 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.json.JsonObject;
-import java.util.Iterator;
 import java.util.Set;
 import java.util.StringJoiner;
 
@@ -39,10 +36,20 @@ public class UserRepresentation {
     @JsonProperty("temporary")
     public Boolean temporary;
 
-    public UserDtoCredential(final String value) {
+    public UserDtoCredential(String type, String value, Boolean temporary) {
+      this.type = type;
+      this.value = value;
+      this.temporary = temporary;
+    }
+
+    public UserDtoCredential(String value, Boolean isTemporary) {
       this.value = value;
       this.type = "password";
-      this.temporary = false;
+      this.temporary = isTemporary;
+    }
+
+    public UserDtoCredential(String value) {
+      this(value, Boolean.FALSE);
     }
   }
 
@@ -64,15 +71,23 @@ public class UserRepresentation {
   @JsonProperty("credentials")
   public Set<UserDtoCredential> credentials;
 
+  public UserRepresentation() {
+  }
+
   public UserRepresentation(final String firstName, final String lastName, final String email,
-      final Boolean enabled,
-      final String username, final String password) {
+      final Boolean enabled, final String username, final String password,
+      final Boolean isTemporaryPassword) {
     this.firstName = firstName;
     this.lastName = lastName;
     this.email = email;
     this.enabled = enabled;
     this.username = username;
-    this.credentials = Set.of(new UserDtoCredential(password));
+    this.credentials = Set.of(new UserDtoCredential(password, isTemporaryPassword));
+  }
+
+  public UserRepresentation(final String firstName, final String lastName, final String email,
+      final Boolean enabled, final String username, final String password) {
+    this(firstName, lastName, email, enabled, username, password, Boolean.FALSE);
   }
 
   public UserRepresentation(final String firstName, final String lastName, final String email,
@@ -89,8 +104,8 @@ public class UserRepresentation {
     return new UserRepresentation(r.firstName, r.lastName, r.email, r.enabled, r.username);
   }
 
-  public static UserDtoCredential credentialsFrom(final String password){
-    return new UserDtoCredential(password);
+  public static UserDtoCredential credentialsFrom(final String password, final Boolean isTemporary) {
+    return new UserDtoCredential(password, isTemporary);
   }
 
   public String getFirstName() {

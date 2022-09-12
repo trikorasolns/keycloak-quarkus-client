@@ -143,7 +143,30 @@ public class KeycloakClientLogic {
     return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
         .map(KeycloakUserRepresentation::getId)
         .call(userId -> keycloakClient.resetPassword(BEARER + token, realm, GRANT_TYPE,
-            keycloakClientId, userId, UserRepresentation.credentialsFrom(password)))
+            keycloakClientId, userId, UserRepresentation.credentialsFrom(password, Boolean.FALSE)))
+        .replaceWith(this.getUserInfo(realm, token, keycloakClientId, userName));
+  }
+
+  /**
+   * Updated a user in Keycloak. It can throw NoSuchUserException.
+   *
+   * @param realm            the realm name in which the users are going to be queried.
+   * @param token            access token provided by the keycloak SecurityIdentity.
+   * @param keycloakClientId id of the client (service name).
+   * @param userName         username of the user that is going to be updated.
+   * @param password         raw string containing the new user data in the UserRepresentation
+   *                         format.
+   * @param isTemporary      indicates if the user must change the password at the first login
+   *                         time.
+   * @return a UserRepresentation of the updated user.
+   */
+  public Uni<KeycloakUserRepresentation> resetPassword(final String realm, final String token,
+      final String keycloakClientId, final String userName, final String password,
+      final Boolean isTemporary) {
+    return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
+        .map(KeycloakUserRepresentation::getId)
+        .call(userId -> keycloakClient.resetPassword(BEARER + token, realm, GRANT_TYPE,
+            keycloakClientId, userId, UserRepresentation.credentialsFrom(password, isTemporary)))
         .replaceWith(this.getUserInfo(realm, token, keycloakClientId, userName));
   }
 
@@ -229,6 +252,7 @@ public class KeycloakClientLogic {
     return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
         .call(user -> keycloakClient.deleteUser(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, user.id))
+        .onFailure().invoke(x->LOGGER.warn("DELETE USR ERROR: {}", x.getMessage()))
         .map(x -> Boolean.TRUE);
   }
 

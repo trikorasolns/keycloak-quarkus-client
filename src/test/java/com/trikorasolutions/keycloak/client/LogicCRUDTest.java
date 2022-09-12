@@ -384,7 +384,22 @@ public class LogicCRUDTest {
     logicResponse = keycloakClientLogic.resetPassword(tkrKcCli.getRealmName(), accessToken,
         tkrKcCli.getClientId(), newUser.username, "1234isPerfectPassword").await().indefinitely();
     assertThat(logicResponse.email, is("kcpsslast@trikorasolutions.com"));
+  }
 
+  @Test
+  public void testCreateUserPasswordTemporal() {
+    String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    UserRepresentation newUser = new UserRepresentation("kcpss", "kcpsslast",
+        "kcpsstmplast2@trikorasolutions.com", true,
+        "kcpss2", "kcpss", true);
+    KeycloakUserRepresentation logicResponse;
+    // Creates the user
+    keycloakClientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+            newUser.username).onFailure(NoSuchUserException.class).recoverWithNull().await()
+        .indefinitely(); // Delete the test user
+    logicResponse = keycloakClientLogic.createUser(tkrKcCli.getRealmName(), accessToken,
+        tkrKcCli.getClientId(), newUser).await().indefinitely();
+    assertThat(logicResponse.email, is(newUser.email));
   }
 
 }
