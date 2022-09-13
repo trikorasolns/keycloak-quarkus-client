@@ -34,17 +34,36 @@ public class LogicRoleTest {
 
     RoleRepresentation newRole = new RoleRepresentation("test-create-role",
         "test-create-role-desc");
-    keycloakClientLogic.deleteRole(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newRole.name)
-        .await()
-        .indefinitely();
+    keycloakClientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+            newRole.name)
+        .await().indefinitely();
     RoleRepresentation logicResponse = keycloakClientLogic.createRole(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newRole).await()
-        .indefinitely();
-    LOGGER.warn("TEST {}",logicResponse);
+            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newRole)
+        .await().indefinitely();
+
     assertThat(logicResponse.name, is(newRole.name));
     assertThat(logicResponse.description, is(newRole.description));
     assertThat(logicResponse.clientRole, is(false));
+
+
+    //UPD
+    newRole.description = "I have been updated";
+     logicResponse = keycloakClientLogic.updateRole(
+            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newRole.name, newRole)
+        .await().indefinitely();
+     LOGGER.warn("UPD:{}", logicResponse);
+     assertThat(logicResponse.description, is(newRole.description));
+  }
+
+  @Test
+  public void testGetAllRoles() {
+    String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+
+    List<RoleRepresentation> logicResponse = keycloakClientLogic.listAllRoles(
+            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId())
+        .await().indefinitely();
+    assertThat(logicResponse.size(),is(greaterThanOrEqualTo(1)));
+    //LOGGER.warn("TEST {}", logicResponse);
   }
 
   @Test

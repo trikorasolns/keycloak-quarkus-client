@@ -35,6 +35,9 @@ public class RoleRepresentation {
   @JsonProperty("containerId")
   public String containerId;
 
+  public RoleRepresentation() {
+  }
+
   public RoleRepresentation(String id) {
     this.id = id;
   }

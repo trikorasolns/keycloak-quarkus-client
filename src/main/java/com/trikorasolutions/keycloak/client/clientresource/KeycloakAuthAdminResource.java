@@ -4,19 +4,10 @@ import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation.UserDtoCredential;
 import io.smallrye.mutiny.Uni;
-import javax.json.JsonArray;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import javax.json.JsonArray;
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 
 /**
  * Common arguments to all the methods:
@@ -349,11 +340,12 @@ public interface KeycloakAuthAdminResource {
    * @return a RoleRepresentation of the desired role.
    */
   @GET
-  @Path("/realms/{realm}/roles/{role-name}")
+  @Path("/realms/{realm}/roles")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getRoleInfo(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @PathParam("role-name") String roleName);
+      @QueryParam("client_id") String clientId, @QueryParam("search") String roleName,
+      @QueryParam("exact") Boolean exact);
 
   /**
    * Updates the given role.

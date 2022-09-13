@@ -1,38 +1,30 @@
 package com.trikorasolutions.keycloak.client.bl;
 
-import static java.util.function.UnaryOperator.identity;
-import static javax.ws.rs.core.Response.Status.CONFLICT;
-import static javax.ws.rs.core.Response.Status.NOT_FOUND;
-import static javax.ws.rs.core.Response.Status.UNAUTHORIZED;
-
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthAdminResource;
 import com.trikorasolutions.keycloak.client.clientresource.KeycloakAuthorizationResource;
 import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
-import com.trikorasolutions.keycloak.client.exception.ArgumentsFormatException;
-import com.trikorasolutions.keycloak.client.exception.ClientNotFoundException;
-import com.trikorasolutions.keycloak.client.exception.DuplicatedUserException;
-import com.trikorasolutions.keycloak.client.exception.InvalidTokenException;
-import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
-import com.trikorasolutions.keycloak.client.exception.NoSuchRoleException;
-import com.trikorasolutions.keycloak.client.exception.NoSuchUserException;
+import com.trikorasolutions.keycloak.client.exception.*;
 import io.restassured.RestAssured;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.groups.UniJoin.Builder;
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import javax.enterprise.context.ApplicationScoped;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.util.function.UnaryOperator.identity;
+import static javax.ws.rs.core.Response.Status.*;
 
 
 @ApplicationScoped
@@ -252,7 +244,7 @@ public class KeycloakClientLogic {
    * @param keycloakClientId id of the client (service name).
    * @param userName         name of the user that is going to be deleted from the keycloak
    *                         database.
-   * @return a UserRepresentation of the deleted user.
+   * @return a True if teh user has been removed form the db or false otherwise.
    */
   public Uni<Boolean> deleteUser(final String realm, final String token,
       final String keycloakClientId, final String userName) {
@@ -260,7 +252,8 @@ public class KeycloakClientLogic {
     return this.getUserInfoNoEnrich(realm, token, keycloakClientId, userName)
         .call(user -> keycloakClient.deleteUser(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, user.id))
-        .map(x -> Boolean.TRUE);
+        .map(x -> Boolean.TRUE)
+        .onFailure(ClientWebApplicationException.class).recoverWithItem(Boolean.FALSE);
   }
 
   /**
@@ -355,7 +348,8 @@ public class KeycloakClientLogic {
    * @param realm            the realm name in which the users are going to be queried.
    * @param token            access token provided by the keycloak SecurityIdentity.
    * @param keycloakClientId id of the client (service name).
-   * @param newGroup         group that is going to be created into the Keycloak database.
+   * @param newGroup         group that is going to be created into the Keycloak database, you can
+   *                         create one dto with just the group name.
    * @return a GroupRepresentation of the new group.
    */
   public Uni<GroupRepresentation> createGroup(final String realm, final String token,
@@ -363,6 +357,11 @@ public class KeycloakClientLogic {
     return keycloakClient.createGroup(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
             "{\"name\": \"" + newGroup.name + "\"}")
         .replaceWith(this.getGroupInfoNoEnrich(realm, token, keycloakClientId, newGroup.name));
+  }
+
+  public Uni<GroupRepresentation> createGroup(final String realm, final String token,
+      final String keycloakClientId, final String groupName) {
+    return this.createGroup(realm, token, keycloakClientId, new GroupRepresentation(groupName));
   }
 
   /**
@@ -402,7 +401,7 @@ public class KeycloakClientLogic {
    * @param token            access token provided by the keycloak SecurityIdentity.
    * @param keycloakClientId id of the client (service name).
    * @param groupName        name of the group that is desired to be deleted.
-   * @return True if the groups has been removed from the DB, FALSE otherwise.
+   * @return True if the groups has been removed from the DB, False otherwise.
    */
   public Uni<Boolean> deleteGroup(final String realm, final String token,
       final String keycloakClientId, final String groupName) {
@@ -410,9 +409,8 @@ public class KeycloakClientLogic {
         .map(GroupRepresentation::getId)
         .flatMap(groupId -> keycloakClient.deleteGroup(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, groupId))
-        .replaceWith(this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
-            .map(x -> Boolean.FALSE)
-            .onFailure(NoSuchGroupException.class).recoverWithNull().replaceWith(Boolean.TRUE));
+        .map(x -> Boolean.TRUE)
+        .onFailure(ClientWebApplicationException.class).recoverWithItem(Boolean.FALSE);
 
   }
 
@@ -580,19 +578,18 @@ public class KeycloakClientLogic {
             newRole)
         .onFailure(ClientWebApplicationException.class).transform(ex -> {
           if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
-            return new DuplicatedUserException(newRole.name);
+            return new DuplicatedRoleException(newRole.name);
           } else if (ex.getMessage().contains(String.valueOf(UNAUTHORIZED.getStatusCode()))) {
             return new InvalidTokenException();
           } else if (ex.getMessage().contains(String.valueOf(NOT_FOUND.getStatusCode()))) {
             return new ClientNotFoundException(keycloakClientId, realm);
           } else {
             return new ArgumentsFormatException(
-                "The user representation provided to Keycloak is incorrect, with error: "
+                "The role representation provided to Keycloak is incorrect, with error: "
                     + ex.getMessage());
           }
         })
         .replaceWith(this.getRoleInfoNoEnrich(realm, token, keycloakClientId, newRole.name));
-        //.replaceWith(() -> newRole);
   }
 
   /**
@@ -621,10 +618,8 @@ public class KeycloakClientLogic {
    */
   public Uni<RoleRepresentation> getRoleInfoNoEnrich(final String realm, final String token,
       final String keycloakClientId, final String roleName) {
-    LOGGER.warn("ROLE INFO {}", roleName);
     return keycloakClient.getRoleInfo(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
-            roleName)
-        .invoke(x -> LOGGER.warn("AFTER INFO {}", x))
+            roleName, Boolean.TRUE)
         .map(jsonArray -> (jsonArray.size() != 1) ? null : jsonArray.get(0).asJsonObject())
         .onItem().ifNull().failWith(() -> new NoSuchRoleException(roleName))
         .map(RoleRepresentation::from);
@@ -648,19 +643,21 @@ public class KeycloakClientLogic {
   }
 
   /**
-   * Deletes a role in Keycloak
+   * Deletes a role in Keycloak, if the role do not exit in the realm, kc return a 404 with body
+   * "Could not find role", this client transforms that exception to false.
    *
    * @param realm            the realm name in which the users are going to be queried.
    * @param token            access token provided by the keycloak SecurityIdentity.
    * @param keycloakClientId id of the client (service name).
    * @param roleName         name of the role that is desired to be deleted.
-   * @return True if the roles has been removed from the DB, FALSE otherwise.
+   * @return True if the roles has been removed from the DB, False otherwise.
    */
   public Uni<Boolean> deleteRole(final String realm, final String token,
       final String keycloakClientId, final String roleName) {
     return keycloakClient.deleteRole(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, roleName)
-        .map(x -> true);
+        .map(x -> Boolean.TRUE)
+        .onFailure(ClientWebApplicationException.class).recoverWithItem(Boolean.FALSE);
   }
 
   /**
