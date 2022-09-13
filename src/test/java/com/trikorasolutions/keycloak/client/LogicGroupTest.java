@@ -4,7 +4,10 @@ import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
 import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
+import io.quarkus.test.TestReactiveTransaction;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.vertx.UniAsserter;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,123 +17,123 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.jupiter.api.Assertions.fail;
 
 @QuarkusTest
+@TestReactiveTransaction
 public class LogicGroupTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LogicGroupTest.class);
 
   @Inject
-  KeycloakClientLogic keycloakClientLogic;
+  KeycloakClientLogic clientLogic;
 
   @Inject
   TrikoraKeycloakClientInfo tkrKcCli;
 
 
   @Test
-  public void testCreateGroupOk() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
-    GroupRepresentation newGroup = new GroupRepresentation("TEST_CREATE");
-    LOGGER.info("test{}", newGroup);
-    GroupRepresentation logicResponse;
-    boolean logicResponse2;
+  public void testCreateGroupOk(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final GroupRepresentation newGroup = new GroupRepresentation("TEST_CREATE");
 
-    logicResponse = keycloakClientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(), newGroup).await().indefinitely();
-    assertThat(logicResponse.getName(), is(newGroup.name));
-
-    logicResponse2= keycloakClientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(), logicResponse.name).await().indefinitely();
-    assertThat(logicResponse2, is(true));
-
+    asserter
+        .execute(
+            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name))
+        .assertThat(
+            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup),
+            group -> Assertions.assertThat(group.name).isEqualTo(newGroup.name))
+    ;
   }
 
   @Test
-  public void testGroupInfoOk() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
-    GroupRepresentation logicResponse;
+  public void testGroupInfoErr(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
 
-    logicResponse = keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(),
-        "TENANT_TEST").await().indefinitely();
-
-    assertThat(logicResponse.getName(), is("TENANT_TEST"));
-    LOGGER.info("test{}", logicResponse);
+    asserter.assertFailedWith(
+        () -> clientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+            "unknown"),
+        NoSuchGroupException.class);
   }
 
   @Test
-  public void testGroupInfoErr() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
+  public void testGroupListUsers(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final GroupRepresentation newGroup = new GroupRepresentation("TEST_LIST");
+    final String userToEnroll = "mrsquare";
 
-    try {
-      keycloakClientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-          "unknown").onFailure(NoSuchGroupException.class).transform(x -> {
-        throw (NoSuchGroupException) x;
-      }).await().indefinitely();
-      fail();
-    } catch (NoSuchGroupException ex) {
-      assertThat(ex.getClass(), is(NoSuchGroupException.class));
-      assertThat(ex.getMessage(), containsString("unknown"));
-    }
+    asserter
+        .execute(
+            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name))
+        .assertThat(
+            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup),
+            group -> Assertions.assertThat(group.name).isEqualTo(newGroup.name))
+        .execute( // Put a new user in the group
+            () -> clientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), userToEnroll, newGroup.name))
+        .assertThat(
+            () -> clientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name),
+            listOfUser -> {
+              List<String> usernameList = listOfUser.stream()
+                  .map(user -> user.username)
+                  .collect(Collectors.toList());
+              Assertions.assertThat(usernameList).isNotEmpty();
+              Assertions.assertThat(usernameList).contains(userToEnroll);
+            })
+    ;
   }
 
   @Test
-  public void testGroupListUsers() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
-    List<KeycloakUserRepresentation> logicResponse;
+  public void testPutAndRemoveUserInGroup(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String userToEnroll = "mrsquare";
+    final GroupRepresentation newGroup = new GroupRepresentation("TEST_PUT_REMOVE");
 
-    logicResponse = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
-
-    List<String> userRepresentation = logicResponse.stream()
-        .map(user -> user.username)
-        .collect(Collectors.toList());
-    assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
-    assertThat(userRepresentation, hasItem(ADM));
+    asserter
+        .execute(
+            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name))
+        .assertThat(
+            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup),
+            group -> Assertions.assertThat(group.name).isEqualTo(newGroup.name))
+        .assertThat( // Put a new user in the group
+            () -> clientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), userToEnroll, newGroup.name),
+            user -> {
+              Assertions.assertThat(user.username).isEqualTo(userToEnroll);
+              Assertions.assertThat(user.groups.stream()
+                  .map(GroupRepresentation::getName)
+                  .collect(Collectors.toList())).contains(newGroup.name);
+            })
+        .assertThat( // Check if the change has been persisted in keycloak
+            () -> clientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name),
+            userList -> {
+              List<String> usernameList = userList.stream()
+                  .map(KeycloakUserRepresentation::getUsername)
+                  .collect(Collectors.toList());
+              Assertions.assertThat(usernameList).isNotEmpty();
+              Assertions.assertThat(usernameList).contains(userToEnroll);
+            })
+        .assertThat( // Kick the user out of the group
+            () -> clientLogic.deleteUserFromGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), userToEnroll, newGroup.name),
+            user -> Assertions.assertThat(user.username).isEqualTo(userToEnroll))
+        .assertThat( // Check if the change has been persisted in keycloak
+            () -> clientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name),
+            userList -> {
+              List<String> usernameList = userList.stream()
+                  .map(KeycloakUserRepresentation::getUsername)
+                  .collect(Collectors.toList());
+              Assertions.assertThat(usernameList).isNotNull();
+              Assertions.assertThat(usernameList).doesNotContain(userToEnroll);
+            })
+    ;
   }
-
-  @Test
-  public void testPutAndRemoveUserInGroup() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
-    KeycloakUserRepresentation logicResponse;
-    List<KeycloakUserRepresentation> logicResponse2;
-
-    // Put a new user in the group
-    logicResponse = keycloakClientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(),
-        "mrsquare", "TENANT_TEST").await().indefinitely();
-
-    assertThat(logicResponse.username, is("mrsquare"));
-    assertThat(logicResponse.groups.stream()
-        .map(GroupRepresentation::getName)
-        .collect(Collectors.toList()), hasItem("TENANT_TEST"));
-
-    // Check if the change has been persisted in keycloak
-    logicResponse2 = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
-    List<String> userRepresentation = logicResponse2.stream()
-        .map(user -> user.username)
-        .collect(Collectors.toList());
-    assertThat(userRepresentation.size(), greaterThanOrEqualTo(1));
-    assertThat(userRepresentation, hasItem("mrsquare"));
-
-    // Kick the user out of the group
-    logicResponse = keycloakClientLogic.deleteUserFromGroup(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(),
-        "mrsquare", "TENANT_TEST").await().indefinitely();
-    assertThat(logicResponse.username, is("mrsquare"));
-
-    // Check if the change has been persisted in keycloak
-    logicResponse2 = keycloakClientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-        tkrKcCli.getClientId(), "TENANT_TEST").await().indefinitely();
-    userRepresentation = logicResponse2.stream()
-        .map(user -> user.username)
-        .collect(Collectors.toList());
-    assertThat(userRepresentation.size(), greaterThanOrEqualTo(0));
-    assertThat(userRepresentation, not(hasItem("mrsquare")));
-  }
-
 }

@@ -406,11 +406,15 @@ public class KeycloakClientLogic {
   public Uni<Boolean> deleteGroup(final String realm, final String token,
       final String keycloakClientId, final String groupName) {
     return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
+        .onFailure().invoke(x->LOGGER.warn("ERROR DEL GR {}",x.getMessage()))
+        .invoke(x->LOGGER.warn("OK DEL GR {}",x))
         .map(GroupRepresentation::getId)
         .flatMap(groupId -> keycloakClient.deleteGroup(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, groupId))
         .map(x -> Boolean.TRUE)
-        .onFailure(ClientWebApplicationException.class).recoverWithItem(Boolean.FALSE);
+
+        .onFailure().recoverWithItem(Boolean.FALSE)
+        .replaceWith(true);
 
   }
 
