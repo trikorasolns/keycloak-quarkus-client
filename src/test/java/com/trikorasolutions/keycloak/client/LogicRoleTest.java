@@ -2,9 +2,11 @@ package com.trikorasolutions.keycloak.client;
 
 import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
+import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import io.quarkus.test.TestReactiveTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.vertx.UniAsserter;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -124,5 +126,37 @@ public class LogicRoleTest {
         () -> clientLogic.getTokenForUser(tkrKcCli.getRealmName(), tkrKcCli.getClientId(),
             tkrKcCli.getClientSecret()),
         tok -> assertThat(tok).isNotEmpty());
+  }
+
+  @Test
+  public void testDeleteRoleOk(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    RoleRepresentation newRole = new RoleRepresentation("test-del-role",
+        "test-del-role-desc");
+
+    asserter
+        .execute( // Delete the test user
+            () -> clientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newRole.name))
+        .execute( // Create a test user
+            () -> clientLogic.createRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newRole))
+        .assertThat(
+            () -> clientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newRole.name),
+            bool -> Assertions.assertThat(bool).isEqualTo(true))
+    ;
+  }
+
+  @Test
+  public void testDeleteRoleErr(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+
+    asserter
+        .assertThat(
+            () -> clientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), "unknown"),
+            bool -> Assertions.assertThat(bool).isEqualTo(false))
+    ;
   }
 }

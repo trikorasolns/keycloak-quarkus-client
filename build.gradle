@@ -166,7 +166,7 @@ dependencies {
   testImplementation 'io.quarkus:quarkus-junit5'
   testImplementation 'io.rest-assured:rest-assured'
   testImplementation 'io.quarkus:quarkus-test-vertx'
-  testImplementation 'org.assertj:assertj-core:3.22.0'
+  testImplementation "org.assertj:assertj-core:${assertjCoreVersion}"
 }
 
 java {

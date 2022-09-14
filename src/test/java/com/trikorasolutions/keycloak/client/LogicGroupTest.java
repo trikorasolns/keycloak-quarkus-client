@@ -11,7 +11,6 @@ import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.inject.Inject;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -55,6 +54,37 @@ public class LogicGroupTest {
         () -> clientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
             "unknown"),
         NoSuchGroupException.class);
+  }
+
+  @Test
+  public void testDeleteGroupOk(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final GroupRepresentation newGroup = new GroupRepresentation("TEST_DELETE");
+
+    asserter
+        .execute( // Delete the test user
+            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name))
+        .execute( // Create a test user
+            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup))
+        .assertThat(
+            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name),
+            bool -> Assertions.assertThat(bool).isEqualTo(true))
+    ;
+  }
+
+  @Test
+  public void testDeleteGroupErr(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+
+    asserter
+        .assertThat(
+            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), "unknown"),
+            bool -> Assertions.assertThat(bool).isEqualTo(false))
+    ;
   }
 
   @Test

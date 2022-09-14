@@ -253,7 +253,7 @@ public class KeycloakClientLogic {
         .call(user -> keycloakClient.deleteUser(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, user.id))
         .map(x -> Boolean.TRUE)
-        .onFailure(ClientWebApplicationException.class).recoverWithItem(Boolean.FALSE);
+        .onFailure(NoSuchUserException.class).recoverWithItem(Boolean.FALSE);
   }
 
   /**
@@ -356,6 +356,19 @@ public class KeycloakClientLogic {
       final String keycloakClientId, final GroupRepresentation newGroup) {
     return keycloakClient.createGroup(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
             "{\"name\": \"" + newGroup.name + "\"}")
+        .onFailure(ClientWebApplicationException.class).transform(ex -> {
+          if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
+            return new DuplicatedGroupException(newGroup.name);
+          } else if (ex.getMessage().contains(String.valueOf(UNAUTHORIZED.getStatusCode()))) {
+            return new InvalidTokenException();
+          } else if (ex.getMessage().contains(String.valueOf(NOT_FOUND.getStatusCode()))) {
+            return new ClientNotFoundException(keycloakClientId, realm);
+          } else {
+            return new ArgumentsFormatException(
+                "The group representation provided to Keycloak is incorrect, with error: "
+                    + ex.getMessage());
+          }
+        })
         .replaceWith(this.getGroupInfoNoEnrich(realm, token, keycloakClientId, newGroup.name));
   }
 
@@ -406,15 +419,11 @@ public class KeycloakClientLogic {
   public Uni<Boolean> deleteGroup(final String realm, final String token,
       final String keycloakClientId, final String groupName) {
     return this.getGroupInfoNoEnrich(realm, token, keycloakClientId, groupName)
-        .onFailure().invoke(x->LOGGER.warn("ERROR DEL GR {}",x.getMessage()))
-        .invoke(x->LOGGER.warn("OK DEL GR {}",x))
         .map(GroupRepresentation::getId)
         .flatMap(groupId -> keycloakClient.deleteGroup(BEARER + token, realm, GRANT_TYPE,
             keycloakClientId, groupId))
         .map(x -> Boolean.TRUE)
-
-        .onFailure().recoverWithItem(Boolean.FALSE)
-        .replaceWith(true);
+        .onFailure(NoSuchGroupException.class).recoverWithItem(Boolean.FALSE);
 
   }
 

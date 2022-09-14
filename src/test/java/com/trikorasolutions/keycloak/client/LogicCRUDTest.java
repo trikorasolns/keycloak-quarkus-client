@@ -7,11 +7,13 @@ import io.quarkus.test.TestReactiveTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.vertx.UniAsserter;
 import org.assertj.core.api.Assertions;
+import org.assertj.core.api.Condition;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
@@ -21,6 +23,18 @@ import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM
 public class LogicCRUDTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LogicCRUDTest.class);
+  private static final Pattern VALID_EMAIL_ADDRESS_REGEX =
+      Pattern.compile("^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,6}$", Pattern.CASE_INSENSITIVE);
+  private static final Pattern VALID_KEYCLOAK_ID_REGEX =
+      Pattern.compile("^[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+-[A-Z0-9]+$",
+          Pattern.CASE_INSENSITIVE);
+
+  private static final Condition<String> keycloakId = new Condition<>(
+      s -> s != null && s.length() == 36 && VALID_KEYCLOAK_ID_REGEX.matcher(s).find(),
+      "The provided string does not match the pattern of an standard keycloak Id");
+  private static final Condition<String> standardEmail = new Condition<>(
+      s -> s != null && VALID_EMAIL_ADDRESS_REGEX.matcher(s).find(),
+      "The provided string does not match the pattern of an standard email\"");
 
   @Inject
   KeycloakClientLogic clientLogic;
@@ -102,15 +116,11 @@ public class LogicCRUDTest {
         "mrrectangule", "mrrectangule");
 
     asserter
-        .execute( // Delete the test user
-            () -> clientLogic.deleteUser("realm_is_not_defined", accessToken,
-                "client_is_not_defined", newUser.username))
         .assertFailedWith(
-            () -> clientLogic.createUser(tkrKcCli.getRealmName(), "BAD TOKEN",
-                tkrKcCli.getClientId(), newUser),
+            () -> clientLogic.createUser("realm_is_not_defined", accessToken,
+                "client_is_not_defined", newUser),
             ClientNotFoundException.class)
     ;
-
   }
 
   @Test
@@ -123,7 +133,7 @@ public class LogicCRUDTest {
             () -> clientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken,
                 tkrKcCli.getClientId(), newUser.username))
         .assertFailedWith(
-            () -> clientLogic.createUser(tkrKcCli.getRealmName(), "BAD TOKEN",
+            () -> clientLogic.createUser(tkrKcCli.getRealmName(), accessToken,
                 tkrKcCli.getClientId(), newUser),
             ArgumentsFormatException.class)
     ;
@@ -151,8 +161,9 @@ public class LogicCRUDTest {
               Assertions.assertThat(user.email).isNull();
               Assertions.assertThat(user.enabled).isEqualTo(newUser.enabled);
               Assertions.assertThat(user.username).isEqualTo(newUser.username);
-              Assertions.assertThat(user.id).isNull();
+              Assertions.assertThat(user.id).isNotNull().is(keycloakId);
             })
+
     ;
   }
 
@@ -176,10 +187,10 @@ public class LogicCRUDTest {
             user -> {
               Assertions.assertThat(user.firstName).isEqualTo(newUser.firstName);
               Assertions.assertThat(user.lastName).isEqualTo(newUser.lastName);
-              Assertions.assertThat(user.email).isNull();
+              Assertions.assertThat(user.email).is(standardEmail);
               Assertions.assertThat(user.enabled).isEqualTo(newUser.enabled);
               Assertions.assertThat(user.username).isEqualTo(newUser.username);
-              Assertions.assertThat(user.id).isNull();
+              Assertions.assertThat(user.id).is(keycloakId);
             })
     ;
   }
@@ -259,10 +270,10 @@ public class LogicCRUDTest {
     final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
 
     asserter
-        .assertFailedWith(
+        .assertThat(
             () -> clientLogic.deleteUser(tkrKcCli.getRealmName(), accessToken,
                 tkrKcCli.getClientId(), "unknown"),
-            NoSuchUserException.class)
+            bool -> Assertions.assertThat(bool).isEqualTo(false))
     ;
   }
 
