@@ -34,7 +34,7 @@ public class LogicCRUDTest {
       "The provided string does not match the pattern of an standard keycloak Id");
   private static final Condition<String> standardEmail = new Condition<>(
       s -> s != null && VALID_EMAIL_ADDRESS_REGEX.matcher(s).find(),
-      "The provided string does not match the pattern of an standard email\"");
+      "The provided string does not match the pattern of an standard email");
 
   @Inject
   KeycloakClientLogic clientLogic;
@@ -161,9 +161,8 @@ public class LogicCRUDTest {
               Assertions.assertThat(user.email).isNull();
               Assertions.assertThat(user.enabled).isEqualTo(newUser.enabled);
               Assertions.assertThat(user.username).isEqualTo(newUser.username);
-              Assertions.assertThat(user.id).isNotNull().is(keycloakId);
+              Assertions.assertThat(user.id).is(keycloakId);
             })
-
     ;
   }
 
