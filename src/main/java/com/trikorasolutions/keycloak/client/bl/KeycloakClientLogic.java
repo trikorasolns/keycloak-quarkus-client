@@ -13,6 +13,8 @@ import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.exception.ArgumentsFormatException;
 import com.trikorasolutions.keycloak.client.exception.ClientNotFoundException;
+import com.trikorasolutions.keycloak.client.exception.DuplicatedGroupException;
+import com.trikorasolutions.keycloak.client.exception.DuplicatedRoleException;
 import com.trikorasolutions.keycloak.client.exception.DuplicatedUserException;
 import com.trikorasolutions.keycloak.client.exception.InvalidTokenException;
 import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
@@ -442,7 +444,7 @@ public class KeycloakClientLogic {
     Builder<String> builder = Uni.join().builder();
     LinkedHashMap<String, String> idMapper = new LinkedHashMap<>();
     Arrays.stream(roles).forEach(roleName ->
-        builder.add(this.getRoleInfo(realm, token, keycloakClientId, roleName)
+        builder.add(this.getRoleInfoNoEnrich(realm, token, keycloakClientId, roleName)
             .map(role -> idMapper.put(role.name, role.id))
         )
     );

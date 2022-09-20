@@ -336,59 +336,6 @@ public interface KeycloakAuthAdminResource {
       @QueryParam("client_id") String clientId);
 
   /**
-   * Creates a role
-   *
-   * @param role RoleRepresentation of the Role to be created
-   * @return JsonArray with the role details
-   */
-  @POST
-  @Path("/realms/{realm}/roles")
-  @Produces(MediaType.APPLICATION_JSON)
-  Uni<JsonArray> createRole(@HeaderParam("Authorization") String bearerToken,
-      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, RoleRepresentation role);
-
-  /**
-   * Gets a role by name
-   *
-   * @param roleName id of the role to be queried
-   * @return JsonArray with the role details
-   */
-  @GET
-  @Path("/realms/{realm}/roles")
-  @Produces(MediaType.APPLICATION_JSON)
-  Uni<JsonArray> getRole(@HeaderParam("Authorization") String bearerToken,
-      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @QueryParam("search") String roleName);
-
-  /**
-   * Updates a role
-   *
-   * @param roleId id of the Role to be deleted
-   * @return JsonArray with the role details
-   */
-  @PUT
-  @Path("/realms/{realm}/roles-by-id/{id}")
-  @Produces(MediaType.APPLICATION_JSON)
-  Uni<JsonArray> updateRole(@HeaderParam("Authorization") String bearerToken,
-      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @PathParam("id") String roleId,
-      RoleRepresentation role);
-
-  /**
-   * Deletes a role
-   *
-   * @param roleId id of the Role to be deleted
-   * @return JsonArray with the role details
-   */
-  @DELETE
-  @Path("/realms/{realm}/roles-by-id/{id}")
-  @Produces(MediaType.APPLICATION_JSON)
-  Uni<JsonArray> deleteRole(@HeaderParam("Authorization") String bearerToken,
-      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @PathParam("id") String roleId);
-
-  /**
    * This will create a realm role.
    *
    * @param rep representation of the role that is going to be created in the Keycloak database.

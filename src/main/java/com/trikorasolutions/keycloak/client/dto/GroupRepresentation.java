@@ -35,6 +35,7 @@ public class GroupRepresentation {
   public Set<KeycloakUserRepresentation> members;
 
   public GroupRepresentation() {}
+
   public GroupRepresentation(String name) {
     this.name = name;
   }
