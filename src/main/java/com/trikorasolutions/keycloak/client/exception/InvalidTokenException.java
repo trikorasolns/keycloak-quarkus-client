@@ -1,8 +1,8 @@
 package com.trikorasolutions.keycloak.client.exception;
 
-public class InvalidTokenException extends RuntimeException{
+public class InvalidTokenException extends RuntimeException {
 
   public InvalidTokenException() {
-    super ("Token incorrect");
+    super("Token incorrect");
   }
 }

@@ -648,6 +648,7 @@ curl -s -X GET 'http://localhost:8090/auth/admin/realms/trikorasolutions/users/c
   }
 }
 ----
+
 *CREATE REALM ROLE*
 [source, bash]
 ----
@@ -670,6 +671,17 @@ curl -X GET "http://localhost:8090/auth/admin/realms/trikorasolutions/roles/test
   "attributes": {}
 }
 
+*ADD ROLE TO GROUPS*
+[source, shell script]
+----
+curl -s -X POST \
+'http://localhost:8090/auth/admin/realms/trikorasolutions/groups/1445ea0b-8ad7-4259-b2e5-effbfb2905bc/role-mappings/realm' \
+-H "Accept: application/json" \
+-H "Content-Type: application/json" \
+-H "Authorization: Bearer ${TKN}" \
+-d '[{"id": "cb7ef5d2-060e-4efb-b203-7c9700312a26","name": "application_user"}]' | jq .
+
+(Empty Response)
 ----
 
 *UPDATE REALM ROLE*
@@ -688,12 +700,12 @@ curl -X DELETE "http://localhost:8090/auth/admin/realms/trikorasolutions/roles/t
 https://www.appsdeveloperblog.com/oauth-2-implicit-grant-type-flow-example/
 
 Get what you need using sed (in this examples we are using the jq formatter, but it requires installation):
-[source, bash]
+[source, shell script]
 ----
 TOKEN=`echo $RESULT | sed 's/.*access_token":"//g' | sed 's/".*//g'`
 ----
 *SEE KEYCLOAK KEYS*
-[source, bash]
+[source, shell script]
 ----
 curl -s -L -X GET 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/certs' | jq
 ----
@@ -732,7 +744,7 @@ curl -s -L -X GET 'http://localhost:8090/auth/realms/trikorasolutions/protocol/o
 
 ----
 
-[source, bash]
+[source, shell script]
 ----
 curl -s -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
 -H "Content-Type: application/x-www-form-urlencoded" \
@@ -753,7 +765,7 @@ curl -s -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/ope
 
 ----
 *GET SYSTEM ACCESS TOKEN* (it is possible to select a scope with -d param)
-[source, bash]
+[source, shell script]
 ----
 export TKN=$(curl -s -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
 -H "Content-Type: application/x-www-form-urlencoded" \

@@ -15,6 +15,7 @@ import javax.inject.Inject;
 import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
 import static org.assertj.core.api.Assertions.assertThat;
 
+
 @QuarkusTest
 @TestReactiveTransaction
 public class LogicRoleTest {

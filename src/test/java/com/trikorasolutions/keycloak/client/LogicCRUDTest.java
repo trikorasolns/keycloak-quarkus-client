@@ -192,6 +192,7 @@ public class LogicCRUDTest {
               Assertions.assertThat(user.id).is(keycloakId);
             })
     ;
+
   }
 
   @Test

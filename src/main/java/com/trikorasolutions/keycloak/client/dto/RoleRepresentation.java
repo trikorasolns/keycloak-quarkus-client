@@ -49,7 +49,7 @@ public class RoleRepresentation {
 
   public RoleRepresentation(String id, String name, String description, Boolean composite,
       Boolean clientRole, String containerId) {
-    this.id = id;
+    this(id);
     this.name = name;
     this.description = description;
     this.composite = composite;
