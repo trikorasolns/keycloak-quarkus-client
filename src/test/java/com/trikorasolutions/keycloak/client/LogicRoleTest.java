@@ -1,102 +1,163 @@
 package com.trikorasolutions.keycloak.client;
 
 import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
-import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
+import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
+import io.quarkus.test.TestReactiveTransaction;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.vertx.UniAsserter;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
-import java.util.List;
-import java.util.Set;
 
 import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 @QuarkusTest
+@TestReactiveTransaction
 public class LogicRoleTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LogicRoleTest.class);
 
   @Inject
-  KeycloakClientLogic keycloakClientLogic;
+  KeycloakClientLogic clientLogic;
 
   @Inject
   TrikoraKeycloakClientInfo tkrKcCli;
 
   @Test
-  public void testGetToken() {
-    String tok = keycloakClientLogic.getTokenForUser(
-            tkrKcCli.getRealmName(), tkrKcCli.getClientId(), tkrKcCli.getClientSecret()).await()
-        .indefinitely();
-    assertThat(tok.length(), is(greaterThanOrEqualTo(1)));
+  public void testCreateRole(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    RoleRepresentation newRole = new RoleRepresentation("test-create-role",
+        "test-create-role-desc");
+
+    asserter.execute(
+            () -> clientLogic.deleteRole(tkrKcCli.getRealmName(), tkrKcCli.getAccessToken(ADM, ADM),
+                tkrKcCli.getClientId(), newRole.name))
+        .assertThat(
+            () -> clientLogic.createRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newRole),
+            role -> {
+              assertThat(role.name).isEqualTo(newRole.name);
+              assertThat(role.description).isEqualTo(newRole.description);
+              assertThat(role.clientRole).isEqualTo(Boolean.FALSE);
+              assertThat(role.composite).isEqualTo(Boolean.FALSE);
+              assertThat(role.containerId).isEqualTo(tkrKcCli.getRealmName());
+            }
+        )
+    ;
   }
 
   @Test
-  public void testGetRoleUsers() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
+  public void testUpdateRole(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    RoleRepresentation newRole = new RoleRepresentation("test-update-role",
+        "test-update-role-desc");
 
-    List<KeycloakUserRepresentation> logicResponse = keycloakClientLogic.getAllUsersInAssignedRole(
-        tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), "hr").await().indefinitely();
-    assertThat(logicResponse.size(), is(greaterThanOrEqualTo(1)));
+    asserter.execute(() -> this.clientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken,
+            tkrKcCli.getClientId(), newRole.name))
+        .assertThat(
+            () -> clientLogic.createRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newRole),
+            role -> {
+              assertThat(role.name).isEqualTo(newRole.name);
+              assertThat(role.description).isEqualTo(newRole.description);
+              assertThat(role.clientRole).isEqualTo(Boolean.FALSE);
+              assertThat(role.composite).isEqualTo(Boolean.FALSE);
+              assertThat(role.containerId).isEqualTo(tkrKcCli.getRealmName());
+            }
+        ).assertThat(
+            () -> clientLogic.updateRole(
+                tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newRole.name, newRole),
+            role -> {
+              assertThat(role.name).isEqualTo(newRole.name);
+              assertThat(role.description).isEqualTo(newRole.description);
+            }
+        )
+    ;
   }
 
   @Test
-  public void testGetUserRoles() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
-    List<RoleRepresentation> logicResponse = keycloakClientLogic.getUserRoles(
-        tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), ADM).await().indefinitely();
-    assertThat(logicResponse.size(), is(greaterThanOrEqualTo(1)));
+  public void testGetAllRoles(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+
+    asserter.assertThat(() -> clientLogic.listAllRoles(tkrKcCli.getRealmName(), accessToken,
+            tkrKcCli.getClientId()),
+        listOfRoles -> assertThat(listOfRoles).isNotEmpty());
   }
 
   @Test
-  public void testGetAllUsersInEffectiveRole() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
+  public void testGetRoleUsers(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
 
-    Set<KeycloakUserRepresentation> logicResponse = keycloakClientLogic.getAllUserInEffectiveRole(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), "project_manager").await()
-        .indefinitely();
-    assertThat(logicResponse.size(), is(greaterThanOrEqualTo(1)));
+    asserter.assertThat(
+        () -> clientLogic.getAllUsersInAssignedRole(tkrKcCli.getRealmName(), accessToken,
+            tkrKcCli.getClientId(), "hr"),
+        listOfUser -> assertThat(listOfUser).isNotEmpty());
+
   }
 
   @Test
-  public void testGetAllRoles() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
+  public void testGetUserRoles(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
 
-    List<RoleRepresentation> logicResponse = keycloakClientLogic.listAllRoles(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId()).await()
-        .indefinitely();
-    assertThat(logicResponse.size(), is(greaterThanOrEqualTo(1)));
+    asserter.assertThat(
+        () -> clientLogic.getUserRoles(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+            ADM),
+        listOfRoles -> assertThat(listOfRoles).isNotEmpty());
   }
 
   @Test
-  public void testCRUD() {
-    String accessToken = tkrKcCli.getAccessToken(ADM);
-    RoleRepresentation newRole = new RoleRepresentation("TEST_ROLE_CRUD", "TEST_ROLE_CRUD_DESC");
+  public void testGetAllUsersInEffectiveRole(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
 
-    keycloakClientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-        newRole.name).await().indefinitely();
-
-    // Check Create and Get
-    RoleRepresentation logicResponse = keycloakClientLogic.createRole(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newRole).await()
-        .indefinitely();
-    assertThat(logicResponse.name, is(newRole.name));
-
-    // Check Update
-    newRole.description = "Updated field";
-    logicResponse = keycloakClientLogic.updateRole(
-            tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(), newRole.name, newRole).await()
-        .indefinitely();
-    assertThat(logicResponse.description, is(newRole.description));
-
-    // Check Delete
-    assertThat(keycloakClientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
-        newRole.name).await().indefinitely(), is(true));
+    asserter.assertThat(
+        () -> clientLogic.getAllUserInEffectiveRole(tkrKcCli.getRealmName(), accessToken,
+            tkrKcCli.getClientId(), "project_manager"),
+        listOfUsers -> assertThat(listOfUsers).isNotEmpty());
   }
 
+  @Test
+  public void testGetToken(UniAsserter asserter) {
 
+    asserter.assertThat(
+        () -> clientLogic.getTokenForUser(tkrKcCli.getRealmName(), tkrKcCli.getClientId(),
+            tkrKcCli.getClientSecret()),
+        tok -> assertThat(tok).isNotEmpty());
+  }
+
+  @Test
+  public void testDeleteRoleOk(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    RoleRepresentation newRole = new RoleRepresentation("test-del-role",
+        "test-del-role-desc");
+
+    asserter
+        .execute( // Delete the test user
+            () -> clientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newRole.name))
+        .execute( // Create a test user
+            () -> clientLogic.createRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newRole))
+        .assertThat(
+            () -> clientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newRole.name),
+            bool -> Assertions.assertThat(bool).isEqualTo(true))
+    ;
+  }
+
+  @Test
+  public void testDeleteRoleErr(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+
+    asserter
+        .assertThat(
+            () -> clientLogic.deleteRole(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), "unknown"),
+            bool -> Assertions.assertThat(bool).isEqualTo(false))
+    ;
+  }
 }

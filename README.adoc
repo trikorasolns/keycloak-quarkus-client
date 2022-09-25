@@ -238,17 +238,6 @@ Other possible solution to try would be launch keycloak in version 6.0.0 with th
 Or using: https://www.keycloak.org/docs/latest/server_development/#_script_providers
 
 == Curl
-*GET TOKEN FROM KC*
-The token expired each 2 min aprox
-[source, shell script]
-----
-export TKN=$(curl -X POST 'http://localhost:8090/auth/realms/trikorasolutions/protocol/openid-connect/token' \
--H "Content-Type: application/x-www-form-urlencoded" \
--d "username=pm@test" \
--d 'password=pm@test' \
--d 'grant_type=password' \
--d 'client_id=admin-cli' | jq -r '.access_token')
-
 *GET LIST OF REALMS FROM KC*
 curl -s -X GET 'http://localhost:8090/auth/admin/realms' \
 -H "Accept: application/json" \
@@ -661,27 +650,26 @@ curl -s -X GET 'http://localhost:8090/auth/admin/realms/trikorasolutions/users/c
 ----
 
 *CREATE REALM ROLE*
-[source, shell script]
+[source, bash]
 ----
-curl -s -X POST \
-"http://localhost:8090/auth/admin/realms/trikorasolutions/roles" \
--H "Content-Type: application/json" \
--H "Authorization: Bearer ${TKN}" \
--d '{"name": "test-role2","description": "test-role2"}' | jq .
-
-(Empty Response)
+curl -X POST "http://localhost:8090/auth/admin/realms/trikorasolutions/roles"  -H "Content-Type: application/json"  -H "Authorization: Bearer ${TKN}"  -d '{"name": "test-role2"}' | jq .
 ----
 
-*DELETE REALM ROLE*
-[source, shell script]
+*GET REALM ROLE INFO*
+[source, bash]
 ----
-curl -s -X DELETE \
-"http://localhost:8090/auth/admin/realms/trikorasolutions/roles-by-id/21717352-777b-4865-bad1-5400e7c25923" \
--H "Content-Type: application/json" \
--H "Authorization: Bearer ${TKN}" | jq .
-
-(Empty Response)
+curl -X GET "http://localhost:8090/auth/admin/realms/trikorasolutions/roles/test-role2"  -H "Content-Type: application/json"  -H "Authorization: Bearer ${TKN}" | jq .
 ----
+[source, json]
+----
+{
+  "id": "6cd2efd1-2900-416d-b6ce-0f026e95c13a",
+  "name": "test-role2",
+  "composite": false,
+  "clientRole": false,
+  "containerId": "trikorasolutions",
+  "attributes": {}
+}
 
 *ADD ROLE TO GROUPS*
 [source, shell script]
@@ -696,6 +684,17 @@ curl -s -X POST \
 (Empty Response)
 ----
 
+*UPDATE REALM ROLE*
+[source, bash]
+----
+curl -X POST "http://localhost:8090/auth/admin/realms/trikorasolutions/roles/test-role2"  -H "Content-Type: application/json"  -H "Authorization: Bearer ${TKN}"  -d '{"name": "test-role2"}' | jq .
+----
+
+*DELETE REALM ROLE*
+[source, bash]
+----
+curl -X DELETE "http://localhost:8090/auth/admin/realms/trikorasolutions/roles/test-role2"  -H "Content-Type: application/json"  -H "Authorization: Bearer ${TKN}" | jq .
+----
 == Tokens
 (example with different credential types)
 https://www.appsdeveloperblog.com/oauth-2-implicit-grant-type-flow-example/

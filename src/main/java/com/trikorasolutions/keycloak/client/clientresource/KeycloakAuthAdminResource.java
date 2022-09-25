@@ -4,19 +4,10 @@ import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation.UserDtoCredential;
 import io.smallrye.mutiny.Uni;
-import javax.json.JsonArray;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.HeaderParam;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
 import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
+import javax.json.JsonArray;
+import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 
 /**
  * Common arguments to all the methods:
@@ -92,7 +83,8 @@ public interface KeycloakAuthAdminResource {
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getUserInfo(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @QueryParam("username") String username);
+      @QueryParam("client_id") String clientId, @QueryParam("username") String username,
+      @QueryParam("exact") Boolean exact);
 
   /**
    * Deletes a user from the Keycloak database.
@@ -157,7 +149,8 @@ public interface KeycloakAuthAdminResource {
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> getGroupInfo(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @QueryParam("search") String groupName);
+      @QueryParam("client_id") String clientId, @QueryParam("search") String groupName,
+      @QueryParam("exact") Boolean exact);
 
 
   /**
@@ -343,56 +336,71 @@ public interface KeycloakAuthAdminResource {
       @QueryParam("client_id") String clientId);
 
   /**
-   * Creates a role
+   * This will create a realm role.
    *
-   * @param role RoleRepresentation of the Role to be created
-   * @return JsonArray with the role details
+   * @param rep representation of the role that is going to be created in the Keycloak database.
+   * @return a RoleRepresentation of the new role.
    */
   @POST
   @Path("/realms/{realm}/roles")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> createRole(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, RoleRepresentation role);
+      @QueryParam("client_id") String clientId, RoleRepresentation rep);
 
   /**
-   * Gets a role by name
+   * Return all roles of the realm.
    *
-   * @param roleName id of the role to be queried
-   * @return JsonArray with the role details
+   * @return a JsonArray containing all the roles of the realm.
    */
   @GET
   @Path("/realms/{realm}/roles")
   @Produces(MediaType.APPLICATION_JSON)
-  Uni<JsonArray> getRole(@HeaderParam("Authorization") String bearerToken,
+  Uni<JsonArray> getAllRoles(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @QueryParam("search") String roleName);
+      @QueryParam("client_id") String clientId);
 
   /**
-   * Updates a role
+   * Return information of one role.
    *
-   * @param roleId id of the Role to be deleted
-   * @return JsonArray with the role details
+   * @param roleName name of the role that is going to be queried in the Keycloak database.
+   * @return a RoleRepresentation of the desired role.
+   */
+  @GET
+  @Path("/realms/{realm}/roles")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> getRoleInfo(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @QueryParam("search") String roleName,
+      @QueryParam("exact") Boolean exact);
+
+  /**
+   * Updates the given role.
+   *
+   * @param roleName name of the role that is going to be queried in the Keycloak database.
+   * @param rep      representation of the role that is going to be updated in the Keycloak
+   *                 database.
+   * @return a RoleRepresentation of the desired role.
    */
   @PUT
-  @Path("/realms/{realm}/roles-by-id/{id}")
+  @Path("/realms/{realm}/roles/{role-name}")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> updateRole(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @PathParam("id") String roleId,
-      RoleRepresentation role);
+      @QueryParam("client_id") String clientId, @PathParam("role-name") String roleName,
+      RoleRepresentation rep);
+
 
   /**
-   * Deletes a role
+   * This method deletes a role.
    *
-   * @param roleId id of the Role to be deleted
-   * @return JsonArray with the role details
+   * @param roleName of the role that is going to be deleted from the Keycloak database.
+   * @return -
    */
   @DELETE
-  @Path("/realms/{realm}/roles-by-id/{id}")
+  @Path("/realms/{realm}/roles/{role-name}")
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> deleteRole(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, @PathParam("id") String roleId);
-
+      @QueryParam("client_id") String clientId, @PathParam("role-name") String roleName);
 }

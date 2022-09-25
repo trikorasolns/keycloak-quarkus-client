@@ -5,4 +5,5 @@ public class TrikoraGenericException extends RuntimeException {
   public TrikoraGenericException(String message) {
     super(message);
   }
+
 }
