@@ -4,16 +4,20 @@ import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
 import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
+import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
+import com.trikorasolutions.keycloak.client.exception.TrikoraGenericException;
 import io.quarkus.test.TestReactiveTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.vertx.UniAsserter;
 import org.assertj.core.api.Assertions;
+import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.util.List;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
@@ -30,6 +34,9 @@ public class LogicGroupTest {
   @Inject
   TrikoraKeycloakClientInfo tkrKcCli;
 
+  @Inject
+  private JsonWebToken jwt;
+
 
   @Test
   public void testCreateGroupOk(UniAsserter asserter) {
@@ -44,6 +51,25 @@ public class LogicGroupTest {
             () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
                 tkrKcCli.getClientId(), newGroup),
             group -> Assertions.assertThat(group.name).isEqualTo(newGroup.name))
+    ;
+  }
+
+  @Test
+  public void testCreateGroupAsTenantOk(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final GroupRepresentation newGroup = new GroupRepresentation("TEST_ATTR");
+
+    asserter
+        .execute(
+            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.name))
+        .assertThat(
+            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup, true),
+            group -> {
+              /* Check if the attribute has been loaded into the session */
+              Assertions.assertThat(group.name).isEqualTo(newGroup.name);
+            })
     ;
   }
 
