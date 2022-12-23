@@ -363,12 +363,21 @@ public class KeycloakClientLogic {
    * @param keycloakClientId id of the client (service name).
    * @param newGroup         group that is going to be created into the Keycloak database, you can
    *                         create one dto with just the group name.
+   * @param asTenant         generates the tkr-tenant mapping in keycloak. It is a global variable to the application
    * @return a GroupRepresentation of the new group.
    */
+
   public Uni<GroupRepresentation> createGroup(final String realm, final String token,
-      final String keycloakClientId, final GroupRepresentation newGroup) {
+      final String keycloakClientId, final GroupRepresentation newGroup, final Boolean asTenant) {
+    String payload = "";
+    if (asTenant) {
+      payload = "{\"name\": \"" + newGroup.name + "\"," +
+          "\"attributes\":{\"tkr-tenant\":[\"" + newGroup.name + "\"]}}";
+    } else {
+      payload = "{\"name\": \"" + newGroup.name + "\"}";
+    }
     return keycloakClient.createGroup(BEARER + token, realm, GRANT_TYPE, keycloakClientId,
-            "{\"name\": \"" + newGroup.name + "\"}")
+            payload)
         .onFailure(ClientWebApplicationException.class).transform(ex -> {
           if (ex.getMessage().contains(String.valueOf(CONFLICT.getStatusCode()))) {
             return new DuplicatedGroupException(newGroup.name);
@@ -383,6 +392,11 @@ public class KeycloakClientLogic {
           }
         })
         .replaceWith(this.getGroupInfoNoEnrich(realm, token, keycloakClientId, newGroup.name));
+  }
+
+  public Uni<GroupRepresentation> createGroup(final String realm, final String token,
+      final String keycloakClientId, final GroupRepresentation newGroup) {
+    return this.createGroup(realm, token, keycloakClientId, newGroup, false);
   }
 
   public Uni<GroupRepresentation> createGroup(final String realm, final String token,
