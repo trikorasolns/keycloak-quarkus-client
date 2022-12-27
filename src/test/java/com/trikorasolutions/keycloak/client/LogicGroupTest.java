@@ -53,7 +53,7 @@ public final class LogicGroupTest {
   @Test
   public void testCreateGroupAsTenantOk(UniAsserter asserter) {
     final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
-    final GroupRepresentation newGroup = new GroupRepresentation("TEST_ATTR");
+    final GroupRepresentation newGroup = new GroupRepresentation("TENANT_TEST_ATTR");
 
     asserter
         .execute(

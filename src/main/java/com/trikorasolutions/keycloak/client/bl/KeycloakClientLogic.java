@@ -371,8 +371,14 @@ public final class KeycloakClientLogic {
       final String keycloakClientId, final GroupRepresentation newGroup, final Boolean asTenant) {
     String payload = "";
     if (asTenant) {
+      String aux = newGroup.name;
+      // remove the tenant prefix from the attribute
+      if(newGroup.name.startsWith("TENANT_")){
+        aux = newGroup.name.split("_",2)[1];
+      }
+
       payload = "{\"name\": \"" + newGroup.name + "\"," +
-          "\"attributes\":{\"tkr-tenant\":[\"" + newGroup.name + "\"]}}";
+          "\"attributes\":{\"tkr-tenant\":[\"" + aux + "\"]}}";
     } else {
       payload = "{\"name\": \"" + newGroup.name + "\"}";
     }
