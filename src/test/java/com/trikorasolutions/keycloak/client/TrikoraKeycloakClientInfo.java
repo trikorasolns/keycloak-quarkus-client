@@ -25,9 +25,6 @@ public final class TrikoraKeycloakClientInfo {
   @ConfigProperty(name = "quarkus.oidc.client-id")
   private String clientId;
 
-  @ConfigProperty(name = "quarkus.oidc.client.backend-service")
-  private String backendId;
-
   @ConfigProperty(name = "quarkus.oidc.auth-server-url")
   private String clientServerUrl;
 
@@ -76,11 +73,4 @@ public final class TrikoraKeycloakClientInfo {
     return realmName;
   }
 
-  public String getBackendId() {
-    return backendId;
-  }
-
-  public void setBackendId(String backendId) {
-    this.backendId = backendId;
-  }
 }
