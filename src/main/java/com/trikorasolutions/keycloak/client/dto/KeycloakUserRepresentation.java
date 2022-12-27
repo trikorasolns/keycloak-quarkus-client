@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * This is a Download DTO, that is, it shows only the desired fields when they are requested to KC
  */
-public class KeycloakUserRepresentation {
+public final class KeycloakUserRepresentation {
 
   @JsonIgnore
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakUserRepresentation.class);

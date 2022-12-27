@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 
 @ApplicationScoped
-public class KeycloakClientLogic {
+public final class KeycloakClientLogic {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakClientLogic.class);
   private static final String BEARER = "Bearer ";
@@ -52,10 +52,10 @@ public class KeycloakClientLogic {
   private Integer KC_BUFFER_SIZE;
 
   @RestClient
-  KeycloakAuthAdminResource keycloakClient;
+  private KeycloakAuthAdminResource keycloakClient;
 
   @RestClient
-  KeycloakAuthorizationResource keycloakUserClient;
+  private KeycloakAuthorizationResource keycloakUserClient;
 
   /******************************* SYSTEM FUNCTIONS *******************************/
   /**

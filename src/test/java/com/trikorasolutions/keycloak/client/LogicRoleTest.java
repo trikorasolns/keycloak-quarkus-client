@@ -18,15 +18,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @QuarkusTest
 @TestReactiveTransaction
-public class LogicRoleTest {
+public final class LogicRoleTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LogicRoleTest.class);
 
   @Inject
-  KeycloakClientLogic clientLogic;
+  private KeycloakClientLogic clientLogic;
 
   @Inject
-  TrikoraKeycloakClientInfo tkrKcCli;
+  private TrikoraKeycloakClientInfo tkrKcCli;
 
   @Test
   public void testCreateRole(UniAsserter asserter) {

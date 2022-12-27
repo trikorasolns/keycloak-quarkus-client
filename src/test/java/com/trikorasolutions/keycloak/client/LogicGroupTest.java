@@ -24,19 +24,15 @@ import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM
 
 @QuarkusTest
 @TestReactiveTransaction
-public class LogicGroupTest {
+public final class LogicGroupTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LogicGroupTest.class);
 
   @Inject
-  KeycloakClientLogic clientLogic;
+  private KeycloakClientLogic clientLogic;
 
   @Inject
-  TrikoraKeycloakClientInfo tkrKcCli;
-
-  @Inject
-  private JsonWebToken jwt;
-
+  private TrikoraKeycloakClientInfo tkrKcCli;
 
   @Test
   public void testCreateGroupOk(UniAsserter asserter) {

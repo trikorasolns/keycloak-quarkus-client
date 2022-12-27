@@ -14,25 +14,25 @@ import javax.enterprise.context.ApplicationScoped;
  * not copy your client secret in production.
  */
 @ApplicationScoped
-public class TrikoraKeycloakClientInfo {
+public final class TrikoraKeycloakClientInfo {
 
   public static String ADM = "pm@test";
   private final Logger LOGGER = LoggerFactory.getLogger(TrikoraKeycloakClientInfo.class);
 
   @ConfigProperty(name = "quarkus.oidc.credentials.secret")
-  protected String clientSecret;
+  private String clientSecret;
 
   @ConfigProperty(name = "quarkus.oidc.client-id")
-  protected String clientId;
+  private String clientId;
 
   @ConfigProperty(name = "quarkus.oidc.client.backend-service")
-  protected String backendId;
+  private String backendId;
 
   @ConfigProperty(name = "quarkus.oidc.auth-server-url")
-  protected String clientServerUrl;
+  private String clientServerUrl;
 
   @ConfigProperty(name = "trikora.keycloak.realm-name")
-  protected String realmName;
+  private String realmName;
 
   public String getAccessToken(String userName) {
     RestAssured.defaultParser = Parser.JSON;

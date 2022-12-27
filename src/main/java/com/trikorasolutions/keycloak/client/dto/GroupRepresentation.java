@@ -15,7 +15,7 @@ import javax.json.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class GroupRepresentation {
+public final class GroupRepresentation {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(GroupRepresentation.class);
 
