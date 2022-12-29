@@ -3,7 +3,7 @@ import java.util.regex.Matcher
 plugins {
   id 'java'
   id 'io.quarkus'
-//  id 'maven'
+  id 'maven'
   id 'maven-publish'
   id 'signing'
   id 'org.kordamp.gradle.jandex'

@@ -1,26 +1,24 @@
 package com.trikorasolutions.keycloak.client;
 
+import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
+
 import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
-import com.trikorasolutions.keycloak.client.dto.GroupRepresentation;
-import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
+import com.trikorasolutions.keycloak.client.bl.KeycloakGroupLogic;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
-import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
+import com.trikorasolutions.keycloak.client.dto.TrikoraGroupRepresentation;
+import com.trikorasolutions.keycloak.client.dto.KeycloakUserRepresentation;
 import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
-import com.trikorasolutions.keycloak.client.exception.TrikoraGenericException;
 import io.quarkus.test.TestReactiveTransaction;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.vertx.UniAsserter;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import javax.inject.Inject;
 import org.assertj.core.api.Assertions;
-import org.eclipse.microprofile.jwt.JsonWebToken;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import javax.inject.Inject;
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
 
 @QuarkusTest
 @TestReactiveTransaction
@@ -29,7 +27,10 @@ public final class LogicGroupTest {
   private static final Logger LOGGER = LoggerFactory.getLogger(LogicGroupTest.class);
 
   @Inject
-  private KeycloakClientLogic clientLogic;
+  private KeycloakClientLogic blClient;
+
+  @Inject
+  private KeycloakGroupLogic blGroup;
 
   @Inject
   private TrikoraKeycloakClientInfo tkrKcCli;
@@ -37,34 +38,63 @@ public final class LogicGroupTest {
   @Test
   public void testCreateGroupOk(UniAsserter asserter) {
     final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
-    final GroupRepresentation newGroup = new GroupRepresentation("TEST_CREATE");
+    final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TEST_CREATE");
 
     asserter
         .execute(
-            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name))
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()))
         .assertThat(
-            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup),
-            group -> Assertions.assertThat(group.name).isEqualTo(newGroup.name))
+            () -> blGroup.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName(),null),
+            group -> Assertions.assertThat(group.getName()).isEqualTo(newGroup.getName()))
     ;
   }
 
   @Test
   public void testCreateGroupAsTenantOk(UniAsserter asserter) {
     final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
-    final GroupRepresentation newGroup = new GroupRepresentation("TENANT_TEST_ATTR");
+    final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TENANT_TEST_ATTR");
 
     asserter
         .execute(
-            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name))
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()))
         .assertThat(
-            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup, true),
+            () -> blGroup.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(),  newGroup.getName(),
+                Map.of("tkr-tenant",List.of("TEST_INFO"))),
             group -> {
               /* Check if the attribute has been loaded into the session */
-              Assertions.assertThat(group.name).isEqualTo(newGroup.name);
+              Assertions.assertThat(group.getName()).isEqualTo(newGroup.getName());
+            })
+    ;
+  }
+
+  @Test
+  public void testGroupInfoOk(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TENANT_TEST_INFO");
+    final String userToEnroll = "mrsquare";
+
+    asserter
+        .execute(
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()))
+        .execute(
+            () -> blGroup.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName(), null))
+        .execute( () -> blGroup.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
+            tkrKcCli.getClientId(), userToEnroll, newGroup.getName()))
+        .assertThat(
+            () -> blGroup.getGroupInfo(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()),
+            group -> {
+              /* Check if the attribute has been loaded into the session */
+              Assertions.assertThat(group.getName()).isEqualTo(newGroup.getName());
+              Assertions.assertThat(group.roles).isNotNull();
+              Assertions.assertThat(group.members).isNotNull()
+                  .hasSizeGreaterThan(0);
             })
     ;
   }
@@ -74,26 +104,64 @@ public final class LogicGroupTest {
     final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
 
     asserter.assertFailedWith(
-        () -> clientLogic.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
+        () -> blGroup.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
             "unknown"),
         NoSuchGroupException.class);
   }
 
   @Test
+  public void testUpdateGroupOk(UniAsserter asserter) {
+    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TENANT_TEST_UPD");
+    final String userToEnroll = "mrsquare";
+
+    asserter
+        .execute(
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()))
+        .execute(
+            () -> blGroup.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName(), null))
+        .assertThat(
+            () -> blGroup.updateGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName(),
+                Map.of("tkr-tenant",List.of("TEST_UPD"))),
+            group -> {
+              /* Check if the attribute has been loaded into the session */
+              Assertions.assertThat(group.getName()).isEqualTo(newGroup.getName());
+            })
+        .execute(
+            () -> blGroup.addRolesToGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName(),
+                "tenant_administrator","application_user"))
+        .assertThat(
+            () -> blGroup.getGroupRoles(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()),
+            roleRepresentationList -> {
+              /* Check if the attribute has been loaded into the session */
+              Assertions.assertThat(roleRepresentationList
+                  .stream()
+                  .map(RoleRepresentation::getName)
+                  .collect(Collectors.toList())).contains("tenant_administrator","application_user");
+            })
+    ;
+  }
+
+  @Test
   public void testDeleteGroupOk(UniAsserter asserter) {
     final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
-    final GroupRepresentation newGroup = new GroupRepresentation("TEST_DELETE");
+    final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TEST_DELETE");
 
     asserter
         .execute( // Delete the test user
-            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name))
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()))
         .execute( // Create a test user
-            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup))
+            () -> blGroup.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName(),null))
         .assertThat(
-            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name),
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()),
             bool -> Assertions.assertThat(bool).isEqualTo(true))
     ;
   }
@@ -104,7 +172,7 @@ public final class LogicGroupTest {
 
     asserter
         .assertThat(
-            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
                 tkrKcCli.getClientId(), "unknown"),
             bool -> Assertions.assertThat(bool).isEqualTo(false))
     ;
@@ -113,23 +181,23 @@ public final class LogicGroupTest {
   @Test
   public void testGroupListUsers(UniAsserter asserter) {
     final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
-    final GroupRepresentation newGroup = new GroupRepresentation("TEST_LIST");
+    final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TEST_LIST");
     final String userToEnroll = "mrsquare";
 
     asserter
         .execute(
-            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name))
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()))
         .assertThat(
-            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup),
-            group -> Assertions.assertThat(group.name).isEqualTo(newGroup.name))
+            () -> blGroup.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName(),null),
+            group -> Assertions.assertThat(group.getName()).isEqualTo(newGroup.getName()))
         .execute( // Put a new user in the group
-            () -> clientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), userToEnroll, newGroup.name))
+            () -> blGroup.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), userToEnroll, newGroup.getName()))
         .assertThat(
-            () -> clientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name),
+            () -> blGroup.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()),
             listOfUser -> {
               List<String> usernameList = listOfUser.stream()
                   .map(user -> user.username)
@@ -144,28 +212,28 @@ public final class LogicGroupTest {
   public void testPutAndRemoveUserInGroup(UniAsserter asserter) {
     final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
     final String userToEnroll = "mrsquare";
-    final GroupRepresentation newGroup = new GroupRepresentation("TEST_PUT_REMOVE");
+    final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TEST_PUT_REMOVE");
 
     asserter
         .execute(
-            () -> clientLogic.deleteGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name))
+            () -> blGroup.deleteGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()))
         .assertThat(
-            () -> clientLogic.createGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup),
-            group -> Assertions.assertThat(group.name).isEqualTo(newGroup.name))
+            () -> blGroup.createGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName(),null),
+            group -> Assertions.assertThat(group.getName()).isEqualTo(newGroup.getName()))
         .assertThat( // Put a new user in the group
-            () -> clientLogic.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), userToEnroll, newGroup.name),
+            () -> blGroup.putUserInGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), userToEnroll, newGroup.getName()),
             user -> {
               Assertions.assertThat(user.username).isEqualTo(userToEnroll);
               Assertions.assertThat(user.groups.stream()
-                  .map(GroupRepresentation::getName)
-                  .collect(Collectors.toList())).contains(newGroup.name);
+                  .map(TrikoraGroupRepresentation::getName)
+                  .collect(Collectors.toList())).contains(newGroup.getName());
             })
         .assertThat( // Check if the change has been persisted in keycloak
-            () -> clientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name),
+            () -> blGroup.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()),
             userList -> {
               List<String> usernameList = userList.stream()
                   .map(KeycloakUserRepresentation::getUsername)
@@ -174,12 +242,12 @@ public final class LogicGroupTest {
               Assertions.assertThat(usernameList).contains(userToEnroll);
             })
         .assertThat( // Kick the user out of the group
-            () -> clientLogic.deleteUserFromGroup(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), userToEnroll, newGroup.name),
+            () -> blGroup.deleteUserFromGroup(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), userToEnroll, newGroup.getName()),
             user -> Assertions.assertThat(user.username).isEqualTo(userToEnroll))
         .assertThat( // Check if the change has been persisted in keycloak
-            () -> clientLogic.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
-                tkrKcCli.getClientId(), newGroup.name),
+            () -> blGroup.getGroupMembers(tkrKcCli.getRealmName(), accessToken,
+                tkrKcCli.getClientId(), newGroup.getName()),
             userList -> {
               List<String> usernameList = userList.stream()
                   .map(KeycloakUserRepresentation::getUsername)
@@ -189,4 +257,5 @@ public final class LogicGroupTest {
             })
     ;
   }
+
 }
