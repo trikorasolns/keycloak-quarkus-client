@@ -8,6 +8,7 @@ import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import javax.json.JsonArray;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import org.keycloak.representations.idm.GroupRepresentation;
 
 /**
  * Common arguments to all the methods:
@@ -136,7 +137,7 @@ public interface KeycloakAuthAdminResource {
   @Produces(MediaType.APPLICATION_JSON)
   Uni<JsonArray> createGroup(@HeaderParam("Authorization") String bearerToken,
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
-      @QueryParam("client_id") String clientId, String group);
+      @QueryParam("client_id") String clientId, GroupRepresentation group);
 
   /**
    * Return information of one group.
@@ -151,6 +152,20 @@ public interface KeycloakAuthAdminResource {
       @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
       @QueryParam("client_id") String clientId, @QueryParam("search") String groupName,
       @QueryParam("exact") Boolean exact);
+
+  /**
+   * This will update the group and ignore subgroups.
+   *
+   * @param group that is going to be created in the Keycloak database.
+   * @return a GroupRepresentation of the new group.
+   */
+  @PUT
+  @Path("/realms/{realm}/groups/{id}")
+  @Produces(MediaType.APPLICATION_JSON)
+  Uni<JsonArray> updateGroup(@HeaderParam("Authorization") String bearerToken,
+      @PathParam("realm") String realm, @QueryParam("grant_type") String grantType,
+      @QueryParam("client_id") String clientId, @PathParam("id") String id,
+      GroupRepresentation group);
 
 
   /**

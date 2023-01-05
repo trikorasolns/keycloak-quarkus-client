@@ -20,7 +20,7 @@ import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM
 
 @QuarkusTest
 @TestReactiveTransaction
-public class LogicCRUDTest {
+public final class LogicCRUDTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LogicCRUDTest.class);
   private static final Pattern VALID_EMAIL_ADDRESS_REGEX =
@@ -37,11 +37,10 @@ public class LogicCRUDTest {
       "The provided string does not match the pattern of an standard email");
 
   @Inject
-  KeycloakClientLogic clientLogic;
+  private KeycloakClientLogic clientLogic;
 
   @Inject
-  TrikoraKeycloakClientInfo tkrKcCli;
-
+  private TrikoraKeycloakClientInfo tkrKcCli;
 
   @Test
   public void testCreateUserOk(UniAsserter asserter) {

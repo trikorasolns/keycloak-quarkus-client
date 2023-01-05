@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
-public class RoleRepresentation {
+public final class RoleRepresentation {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RoleRepresentation.class);
 

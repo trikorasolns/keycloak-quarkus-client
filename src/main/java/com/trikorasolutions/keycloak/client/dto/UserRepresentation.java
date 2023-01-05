@@ -16,7 +16,7 @@ import java.util.StringJoiner;
  * This class is much more short than the KC UserRepresentation, that is why we are using it on
  * those first versions of our client.
  */
-public class UserRepresentation {
+public final class UserRepresentation {
 
   @JsonIgnore
   private static final Logger LOGGER = LoggerFactory.getLogger(UserRepresentation.class);

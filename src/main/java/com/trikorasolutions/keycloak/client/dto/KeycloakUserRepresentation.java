@@ -2,7 +2,6 @@ package com.trikorasolutions.keycloak.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.trikorasolutions.keycloak.client.dto.UserRepresentation.UserDtoCredential;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 /**
  * This is a Download DTO, that is, it shows only the desired fields when they are requested to KC
  */
-public class KeycloakUserRepresentation {
+public final class KeycloakUserRepresentation {
 
   @JsonIgnore
   private static final Logger LOGGER = LoggerFactory.getLogger(KeycloakUserRepresentation.class);
@@ -48,7 +47,7 @@ public class KeycloakUserRepresentation {
   public Set<RoleRepresentation> roles;
 
   @JsonProperty("groups")
-  public Set<GroupRepresentation> groups;
+  public Set<TrikoraGroupRepresentation> groups;
 
   public KeycloakUserRepresentation() {
   }
@@ -204,11 +203,11 @@ public class KeycloakUserRepresentation {
     this.roles = roles;
   }
 
-  public Set<GroupRepresentation> getGroups() {
+  public Set<TrikoraGroupRepresentation> getGroups() {
     return groups;
   }
 
-  public void setGroups(Set<GroupRepresentation> groups) {
+  public void setGroups(Set<TrikoraGroupRepresentation> groups) {
     this.groups = groups;
   }
 
@@ -217,7 +216,7 @@ public class KeycloakUserRepresentation {
     return this;
   }
 
-  public KeycloakUserRepresentation addGroups(Collection<GroupRepresentation> groups) {
+  public KeycloakUserRepresentation addGroups(Collection<TrikoraGroupRepresentation> groups) {
     this.groups.addAll(groups);
     return this;
   }
