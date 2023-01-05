@@ -13,24 +13,18 @@ import com.trikorasolutions.keycloak.client.dto.TrikoraGroupRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.exception.ArgumentsFormatException;
 import com.trikorasolutions.keycloak.client.exception.ClientNotFoundException;
-import com.trikorasolutions.keycloak.client.exception.DuplicatedGroupException;
 import com.trikorasolutions.keycloak.client.exception.DuplicatedRoleException;
 import com.trikorasolutions.keycloak.client.exception.DuplicatedUserException;
 import com.trikorasolutions.keycloak.client.exception.InvalidTokenException;
-import com.trikorasolutions.keycloak.client.exception.NoSuchGroupException;
 import com.trikorasolutions.keycloak.client.exception.NoSuchRoleException;
 import com.trikorasolutions.keycloak.client.exception.NoSuchUserException;
 import io.restassured.RestAssured;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.groups.UniJoin.Builder;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.StringJoiner;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -38,7 +32,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.rest.client.inject.RestClient;
 import org.jboss.resteasy.reactive.ClientWebApplicationException;
 import org.keycloak.representations.AccessTokenResponse;
-import org.keycloak.representations.idm.GroupRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +46,9 @@ public final class KeycloakClientLogic {
 
   @ConfigProperty(name = "trikora.keycloak.buffer-size")
   private Integer KC_BUFFER_SIZE;
+
+  @ConfigProperty(name = "quarkus.oidc.auth-server-url")
+  private String KC_URL;
 
   @RestClient
   private KeycloakAuthAdminResource keycloakClient;
@@ -80,8 +76,7 @@ public final class KeycloakClientLogic {
         .param("client_id", keycloakClientId)
         .param("client_secret", secret)
         .when()
-        .post("http://localhost:8090/auth/realms/trikorasolutions"
-            + "/protocol/openid-connect/token")
+        .post(KC_URL + "/protocol/openid-connect/token")
         .as(AccessTokenResponse.class)
         .getToken();
     return Uni.createFrom().item(tok);

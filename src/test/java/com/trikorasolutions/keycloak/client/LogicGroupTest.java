@@ -1,7 +1,5 @@
 package com.trikorasolutions.keycloak.client;
 
-import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
-
 import com.trikorasolutions.keycloak.client.bl.KeycloakClientLogic;
 import com.trikorasolutions.keycloak.client.bl.KeycloakGroupLogic;
 import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
@@ -37,7 +35,7 @@ public final class LogicGroupTest {
 
   @Test
   public void testCreateGroupOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TEST_CREATE");
 
     asserter
@@ -53,7 +51,7 @@ public final class LogicGroupTest {
 
   @Test
   public void testCreateGroupAsTenantOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TENANT_TEST_ATTR");
 
     asserter
@@ -73,7 +71,7 @@ public final class LogicGroupTest {
 
   @Test
   public void testGroupInfoOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TENANT_TEST_INFO");
     final String userToEnroll = "mrsquare";
 
@@ -101,7 +99,7 @@ public final class LogicGroupTest {
 
   @Test
   public void testGroupInfoErr(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
 
     asserter.assertFailedWith(
         () -> blGroup.getGroupInfo(tkrKcCli.getRealmName(), accessToken, tkrKcCli.getClientId(),
@@ -111,9 +109,8 @@ public final class LogicGroupTest {
 
   @Test
   public void testUpdateGroupOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TENANT_TEST_UPD");
-    final String userToEnroll = "mrsquare";
 
     asserter
         .execute(
@@ -149,7 +146,7 @@ public final class LogicGroupTest {
 
   @Test
   public void testDeleteGroupOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TEST_DELETE");
 
     asserter
@@ -168,7 +165,7 @@ public final class LogicGroupTest {
 
   @Test
   public void testDeleteGroupErr(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
 
     asserter
         .assertThat(
@@ -180,7 +177,7 @@ public final class LogicGroupTest {
 
   @Test
   public void testGroupListUsers(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TEST_LIST");
     final String userToEnroll = "mrsquare";
 
@@ -210,7 +207,7 @@ public final class LogicGroupTest {
 
   @Test
   public void testPutAndRemoveUserInGroup(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final String userToEnroll = "mrsquare";
     final TrikoraGroupRepresentation newGroup = new TrikoraGroupRepresentation("TEST_PUT_REMOVE");
 
