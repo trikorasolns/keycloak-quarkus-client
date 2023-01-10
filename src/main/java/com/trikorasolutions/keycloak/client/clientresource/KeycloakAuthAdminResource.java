@@ -4,10 +4,19 @@ import com.trikorasolutions.keycloak.client.dto.RoleRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation;
 import com.trikorasolutions.keycloak.client.dto.UserRepresentation.UserDtoCredential;
 import io.smallrye.mutiny.Uni;
-import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import javax.json.JsonArray;
-import javax.ws.rs.*;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import org.eclipse.microprofile.rest.client.inject.RegisterRestClient;
 import org.keycloak.representations.idm.GroupRepresentation;
 
 /**
@@ -28,7 +37,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * Register a new user in the Keycloak client.
    *
-   * @param body raw string containing the new user in the UserRepresentation format.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param body        raw string containing the new user in the UserRepresentation format.
    * @return -
    */
   @POST
@@ -41,8 +54,12 @@ public interface KeycloakAuthAdminResource {
   /**
    * Updated a user in Keycloak.
    *
-   * @param id   Id of the user that is going to be updated.
-   * @param body Raw string containing the new user data in the UserRepresentation format.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          Id of the user that is going to be updated.
+   * @param body        Raw string containing the new user data in the UserRepresentation format.
    * @return A UserRepresentation of the updated user.
    */
   @PUT
@@ -56,9 +73,13 @@ public interface KeycloakAuthAdminResource {
   /**
    * Updated a user password in Keycloak.
    *
-   * @param id   Id of the user that is going to be updated.
-   * @param body Raw string containing the new user password in the CredentialRepresentation
-   *             format.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          Id of the user that is going to be updated.
+   * @param body        Raw string containing the new user password in the CredentialRepresentation
+   *                    format.
    * @return -.
    */
   @PUT
@@ -72,11 +93,15 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return the UserRepresentation of one user queried by his username.
    *
-   *
    * <b>NOTE: </b> if the username == null, then Keycloak return a JsonArray with all
    * the users in the realm.
    *
-   * @param username username of the user witch is going to be searched.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param username    username of the user witch is going to be searched.
+   * @param exact       whether to match the exact name of the user.
    * @return a UserRepresentation of the user.
    */
   @GET
@@ -90,7 +115,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * Deletes a user from the Keycloak database.
    *
-   * @param id id of the user that is going to be deleted from the keycloak database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          id of the user that is going to be deleted from the keycloak database.
    * @return a response with body equals to: "success".
    */
   @DELETE
@@ -103,6 +132,12 @@ public interface KeycloakAuthAdminResource {
   /**
    * This method return a list with all the user in the client provided as argument
    *
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param first       first user to be queried. (number of user).
+   * @param max         maximum number of users to be retrieved from keycloak.
    * @return a JsonArray of Keycloak UserRepresentations.
    */
   @GET
@@ -116,6 +151,10 @@ public interface KeycloakAuthAdminResource {
   /**
    * This method return a list with all the groups in the client provided as argument
    *
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
    * @return a JsonArray of Keycloak GroupRepresentations.
    */
   @GET
@@ -129,7 +168,11 @@ public interface KeycloakAuthAdminResource {
    * This will update the group and set the parent if it exists. Create it and set the parent if the
    * group doesn't exist.
    *
-   * @param group that is going to be created in the Keycloak database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param group       that is going to be created in the Keycloak database.
    * @return a GroupRepresentation of the new group.
    */
   @POST
@@ -142,7 +185,12 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return information of one group.
    *
-   * @param groupName name of the group that is going to be queried in the Keycloak database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param groupName   name of the group that is going to be queried in the Keycloak database.
+   * @param exact       whether to match the exact name of the group.
    * @return a GroupRepresentation of the desired group.
    */
   @GET
@@ -156,7 +204,12 @@ public interface KeycloakAuthAdminResource {
   /**
    * This will update the group and ignore subgroups.
    *
-   * @param group that is going to be created in the Keycloak database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          id of the group that is going to be updated.
+   * @param group       parameters that are going to be updated in the Keycloak database.
    * @return a GroupRepresentation of the new group.
    */
   @PUT
@@ -171,7 +224,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * This method deletes a group.
    *
-   * @param id that is going to be deleted from the Keycloak database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          that is going to be deleted from the Keycloak database.
    * @return -
    */
   @DELETE
@@ -184,7 +241,13 @@ public interface KeycloakAuthAdminResource {
   /**
    * Gets all the users that belongs to a concrete group.
    *
-   * @param id id of the group that is going to be queried.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          id of the group that is going to be queried.
+   * @param first       first user to be queried (number of user).
+   * @param max         maximum number of user to be retrieved from the group
    * @return a JsonArray of UserRepresentation.
    */
   @GET
@@ -198,7 +261,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return all the groups of a given user.
    *
-   * @param id id of the user that is going to be added.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          id of the user that is going to be added.
    * @return an empty JsonArray.
    */
   @GET
@@ -211,8 +278,12 @@ public interface KeycloakAuthAdminResource {
   /**
    * Add a user to a group.
    *
-   * @param id      id of the user that is going to be added.
-   * @param groupId id of the group where the user will belong to.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          id of the user that is going to be added.
+   * @param groupId     id of the group where the user will belong to.
    * @return an empty JsonArray.
    */
   @PUT
@@ -226,8 +297,12 @@ public interface KeycloakAuthAdminResource {
   /**
    * Removes a user from a group.
    *
-   * @param id      id of the user that is going to be removed.
-   * @param groupId id of the group.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param id          id of the user that is going to be removed.
+   * @param groupId     id of the group.
    * @return an empty JsonArray.
    */
   @DELETE
@@ -241,7 +316,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return the users which have ASSIGNED the given role
    *
-   * @param roleName role name
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param roleName    role name
    * @return JsonArray with all the users
    */
   @GET
@@ -254,7 +333,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return the groups which have ASSIGNED the given role
    *
-   * @param roleName role name
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param roleName    role name
    * @return JsonArray with all the groups
    */
   @GET
@@ -267,7 +350,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return ALL the roles of one user
    *
-   * @param userId id of the user to be queried
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param userId      id of the user to be queried
    * @return JsonArray with the roles
    */
   @GET
@@ -280,9 +367,13 @@ public interface KeycloakAuthAdminResource {
   /**
    * Add the given role mappings to a group
    *
-   * @param groupId id of the group to be upgraded.
-   * @param roles   array containing the roles to be added, both id and name of the roles need to be
-   *                provided.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param groupId     id of the group to be upgraded.
+   * @param roles       array containing the roles to be added, both id and name of the roles need
+   *                    to be provided.
    * @return -
    */
   @POST
@@ -296,9 +387,13 @@ public interface KeycloakAuthAdminResource {
   /**
    * Removes the given role mappings to a group
    *
-   * @param groupId id of the group to be upgraded.
-   * @param roles   array containing the roles to be added, both id and name of the roles need to be
-   *                provided.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param groupId     id of the group to be upgraded.
+   * @param roles       array containing the roles to be added, both id and name of the roles need
+   *                    to be provided.
    * @return -
    */
   @DELETE
@@ -312,9 +407,13 @@ public interface KeycloakAuthAdminResource {
   /**
    * Remove the given role mappings from a group
    *
-   * @param groupId id of the group to be upgraded.
-   * @param roles   array containing the roles to be added, both id and name of the roles need to be
-   *                provided.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param groupId     id of the group to be upgraded.
+   * @param roles       array containing the roles to be added, both id and name of the roles need
+   *                    to be provided.
    * @return JsonArray with the roles
    */
   @DELETE
@@ -328,7 +427,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return ALL the roles of one group
    *
-   * @param groupId id of the user to be queried
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param groupId     id of the user to be queried
    * @return JsonArray with the roles
    */
   @GET
@@ -341,6 +444,10 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return all the roles at realm level
    *
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
    * @return JsonArray with the role details
    */
   @GET
@@ -353,7 +460,12 @@ public interface KeycloakAuthAdminResource {
   /**
    * This will create a realm role.
    *
-   * @param rep representation of the role that is going to be created in the Keycloak database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param rep         representation of the role that is going to be created in the Keycloak
+   *                    database.
    * @return a RoleRepresentation of the new role.
    */
   @POST
@@ -366,6 +478,10 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return all roles of the realm.
    *
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
    * @return a JsonArray containing all the roles of the realm.
    */
   @GET
@@ -378,7 +494,12 @@ public interface KeycloakAuthAdminResource {
   /**
    * Return information of one role.
    *
-   * @param roleName name of the role that is going to be queried in the Keycloak database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param roleName    name of the role that is going to be queried in the Keycloak database.
+   * @param exact       whether to match the exact name of the user.
    * @return a RoleRepresentation of the desired role.
    */
   @GET
@@ -392,9 +513,13 @@ public interface KeycloakAuthAdminResource {
   /**
    * Updates the given role.
    *
-   * @param roleName name of the role that is going to be queried in the Keycloak database.
-   * @param rep      representation of the role that is going to be updated in the Keycloak
-   *                 database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param roleName    name of the role that is going to be queried in the Keycloak database.
+   * @param rep         representation of the role that is going to be updated in the Keycloak
+   *                    database.
    * @return a RoleRepresentation of the desired role.
    */
   @PUT
@@ -409,7 +534,11 @@ public interface KeycloakAuthAdminResource {
   /**
    * This method deletes a role.
    *
-   * @param roleName of the role that is going to be deleted from the Keycloak database.
+   * @param bearerToken access token provided by the keycloak SecurityIdentity.
+   * @param realm       the realm name in which the users are going to be queried.
+   * @param grantType   kind of authentication method.
+   * @param clientId    id of the client (service name).
+   * @param roleName    of the role that is going to be deleted from the Keycloak database.
    * @return -
    */
   @DELETE
