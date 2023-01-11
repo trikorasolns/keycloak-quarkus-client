@@ -33,7 +33,6 @@ import org.keycloak.representations.idm.GroupRepresentation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
 @ApplicationScoped
 public final class KeycloakGroupLogic {
 

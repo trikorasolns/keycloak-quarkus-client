@@ -15,9 +15,10 @@ import javax.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 public final class TrikoraKeycloakClientInfo {
-
-  public static String ADM = "pm@test";
   private final Logger LOGGER = LoggerFactory.getLogger(TrikoraKeycloakClientInfo.class);
+
+  @ConfigProperty(name = "trikora.keycloak.adm-usr")
+  private String adm;
 
   @ConfigProperty(name = "quarkus.oidc.credentials.secret")
   private String clientSecret;
@@ -30,19 +31,6 @@ public final class TrikoraKeycloakClientInfo {
 
   @ConfigProperty(name = "trikora.keycloak.realm-name")
   private String realmName;
-
-  public String getAccessToken(String userName) {
-    RestAssured.defaultParser = Parser.JSON;
-    return RestAssured.given()
-        .param("grant_type", "password")
-        .param("username", userName)
-        .param("password", userName)
-        .param("client_id", clientId)
-        .param("client_secret", clientSecret)
-        .when()
-        .post(clientServerUrl + "/protocol/openid-connect/token").as(AccessTokenResponse.class)
-        .getToken();
-  }
 
   public String getAccessToken(String userName, String password) {
     RestAssured.defaultParser = Parser.JSON;
@@ -73,4 +61,11 @@ public final class TrikoraKeycloakClientInfo {
     return realmName;
   }
 
+  public String getAdm() {
+    return adm;
+  }
+
+  public void setAdm(String adm) {
+    this.adm = adm;
+  }
 }

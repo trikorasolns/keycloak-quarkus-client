@@ -2,12 +2,6 @@ package com.trikorasolutions.keycloak.client.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.json.JsonArray;
-import javax.json.JsonObject;
-import javax.json.JsonValue;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -16,6 +10,11 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.StringJoiner;
 import java.util.stream.Collectors;
+import javax.json.JsonArray;
+import javax.json.JsonObject;
+import javax.json.JsonValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * This is a Download DTO, that is, it shows only the desired fields when they are requested to KC
@@ -86,10 +85,12 @@ public final class KeycloakUserRepresentation {
 
   @Override
   public boolean equals(Object o) {
-    if (this == o)
+    if (this == o) {
       return true;
-    if (!(o instanceof KeycloakUserRepresentation))
+    }
+    if (!(o instanceof KeycloakUserRepresentation)) {
       return false;
+    }
     KeycloakUserRepresentation that = (KeycloakUserRepresentation) o;
     return id.equals(that.id);
   }
@@ -99,11 +100,18 @@ public final class KeycloakUserRepresentation {
     return Objects.hash(id);
   }
 
+  /**
+   * Parse a JsonObject to a KeycloakUserRepresentation dto.
+   *
+   * @param from Json retrieved from Keycloak.
+   * @return a KeycloakUserRepresentation build up from the Json information.
+   */
   public static KeycloakUserRepresentation from(JsonObject from) {
     LOGGER.debug("from(JsonObject)... {}", from);
     // All response must have a username (exception must be launched in bl)
-    if (from == null || from.getString("username") == null)
+    if (from == null || from.getString("username") == null) {
       return null;
+    }
 
     // Create the DTO only with the mandatory fields
     KeycloakUserRepresentation parsedResponse = new KeycloakUserRepresentation(
@@ -221,22 +229,4 @@ public final class KeycloakUserRepresentation {
     return this;
   }
 
-  /**
-   * Delete if not used in future versions...
-   */
-  @Deprecated
-  public static KeycloakUserRepresentation from(JsonArray from) {
-    // We only parse one user, so it must be stored in position with index 0
-    JsonObject toParse;
-
-    try {
-      toParse = from.getJsonObject(0);
-    } catch (IndexOutOfBoundsException e) {
-      return new KeycloakUserRepresentation("Unknown User");
-    }
-
-    return new KeycloakUserRepresentation(toParse.getString("id"), toParse.getString("firstName"),
-        toParse.getString("lastName"), toParse.getString("email"), toParse.getBoolean("enabled"),
-        toParse.getString("username"));
-  }
 }

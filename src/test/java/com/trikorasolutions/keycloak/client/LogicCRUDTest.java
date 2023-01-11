@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static com.trikorasolutions.keycloak.client.TrikoraKeycloakClientInfo.ADM;
 
 @QuarkusTest
 @TestReactiveTransaction
@@ -44,7 +43,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testCreateUserOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final UserRepresentation newUser = new UserRepresentation("test", "create",
         "testcreate@trikorasolutions.com", true,
         "testcreate", "testcreate");
@@ -65,7 +64,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testCreateUserDuplicatedErr(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule", "mrrectangule");
@@ -91,7 +90,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testCreateUserInvalidTokenErr(UniAsserter asserter) {
-    String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule", "mrrectangule");
@@ -109,7 +108,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testCreateUserNotFoundErr(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule", "mrrectangule");
@@ -124,7 +123,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testCreateUserInvalidUserErr(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation(null, null, null, true, null);
 
     asserter
@@ -140,7 +139,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testCreateWithOutEmailOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle", null, true,
         "mrrectangule", "mrrectangule");
 
@@ -167,7 +166,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testReadUserOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule", "mrrectangule");
@@ -196,7 +195,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testReadUserErr(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
 
     asserter
         .assertFailedWith(
@@ -209,7 +208,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testUpdateUserOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule", "mrrectangule");
@@ -233,7 +232,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testUpdateUserErr(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     asserter
         .assertFailedWith(
             () -> clientLogic.updateUser(tkrKcCli.getRealmName(), accessToken,
@@ -245,7 +244,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testDeleteUserOk(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", true,
         "mrrectangule", "mrrectangule");
@@ -266,7 +265,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testDeleteUserErr(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
 
     asserter
         .assertThat(
@@ -278,7 +277,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testListKeycloakUsers(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     final int f = 50, m = 75;
 
     asserter
@@ -289,7 +288,7 @@ public final class LogicCRUDTest {
               List<String> usernameList = listOfUser.stream()
                   .map(tuple -> tuple.username)
                   .collect(Collectors.toList());
-              Assertions.assertThat(usernameList).contains("jdoe", ADM, "mrsquare", "mrtriangle");
+              Assertions.assertThat(usernameList).contains("jdoe", tkrKcCli.getAdm(), "mrsquare", "mrtriangle");
             })
     ;
 
@@ -326,7 +325,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testEnableDisableUser(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("mr", "rectangle",
         "mrrectangule@trikorasolutions.com", false,
         "mrrectangule", "mrrectangule");
@@ -356,7 +355,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testChangeUserPassword(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("kcpss", "kcpsslast",
         "kcpsslast@trikorasolutions.com", true,
         "kcpss", "kcpss");
@@ -377,7 +376,7 @@ public final class LogicCRUDTest {
 
   @Test
   public void testCreateUserPasswordTemporal(UniAsserter asserter) {
-    final String accessToken = tkrKcCli.getAccessToken(ADM, ADM);
+    final String accessToken = tkrKcCli.getAccessToken(tkrKcCli.getAdm(), tkrKcCli.getAdm());
     UserRepresentation newUser = new UserRepresentation("kcpss", "kcpsslast",
         "kcpsstmplast2@trikorasolutions.com", true,
         "kcpss2", "kcpss", true);
