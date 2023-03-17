@@ -1,13 +1,12 @@
-package com.trikorasolutions.keycloak.client;
+package com.trikorasolutions.keycloak.client.it;
 
 import io.restassured.RestAssured;
 import io.restassured.parsing.Parser;
+import javax.enterprise.context.ApplicationScoped;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.enterprise.context.ApplicationScoped;
 
 /**
  * These variables regarding the "backend-service" client belongs to a testing example project, do
@@ -16,7 +15,7 @@ import javax.enterprise.context.ApplicationScoped;
 @ApplicationScoped
 public class TrikoraKeycloakClientInfo {
 
-  public static String ADM = "pm@test";
+  public static String ADM = "admin";
   private final Logger LOGGER = LoggerFactory.getLogger(TrikoraKeycloakClientInfo.class);
 
   @ConfigProperty(name = "quarkus.oidc.credentials.secret")
@@ -25,14 +24,14 @@ public class TrikoraKeycloakClientInfo {
   @ConfigProperty(name = "quarkus.oidc.client-id")
   protected String clientId;
 
-  @ConfigProperty(name = "quarkus.oidc.client.backend-service")
-  protected String backendId;
+//  @ConfigProperty(name = "quarkus.oidc.client.backend-service")
+//  protected String backendId;
 
   @ConfigProperty(name = "quarkus.oidc.auth-server-url")
   protected String clientServerUrl;
 
-  @ConfigProperty(name = "trikora.keycloak.realm-name")
-  protected String realmName;
+//  @ConfigProperty(name = "trikora.keycloak.realm-name")
+//  protected String realmName;
 
   public String getAccessToken(String userName) {
     RestAssured.defaultParser = Parser.JSON;
@@ -72,15 +71,15 @@ public class TrikoraKeycloakClientInfo {
     return clientServerUrl;
   }
 
-  public String getRealmName() {
-    return realmName;
-  }
+//  public String getRealmName() {
+//    return realmName;
+//  }
 
-  public String getBackendId() {
-    return backendId;
-  }
+//  public String getBackendId() {
+//    return backendId;
+//  }
 
-  public void setBackendId(String backendId) {
-    this.backendId = backendId;
-  }
+//  public void setBackendId(String backendId) {
+//    this.backendId = backendId;
+//  }
 }
